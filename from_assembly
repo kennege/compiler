@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+gcc -S test_assembly.c
+gcc -c test_assembly.s -o test_assembly.o
+gcc test_assembly.o -o test_assembly

@@ -35,6 +35,7 @@ struct token *factor(const char *input_str, struct window *window, struct token 
     }
 
     DEBUG;
+    expr = token_destroy(expr);
     return result;  
 }
 
@@ -95,7 +96,7 @@ struct token *expression(const char *input_str, struct window *window, struct to
     return result;
 }
 
-int parser_parse(const char *input_str)
+int parser_parse(const char *input_str, FILE *assembly_file)
 {    
     struct window window;
     struct token *result, *eof;

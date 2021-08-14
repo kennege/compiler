@@ -9,5 +9,7 @@ int main ()
     int b=91;
     int c=2;
     int d=3;
-    return a*((b+c)/d);
+    int result = a*((b+c)/d);
+    printf("%d\n",result);
+    return 0;
 }
