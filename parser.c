@@ -2,96 +2,122 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "utils.h"
 #include "token.h"
+#include "ast.h"
 #include "lexer.h"
 #include "parser.h"
-#include "utils.h"
 
-int term(const char *input_str, struct window *window, struct token **head);
-int expression(const char *input_str, struct window *window, struct token **head);
+struct node *term(const char *input_str, struct window *window);
+struct node *expression(const char *input_str, struct window *window);
 
-int factor(const char *input_str, struct window *window, struct token **head)
+struct node *factor(const char *input_str, struct window *window)
 {
     /* factor : INTEGER | LPAREN expr RPAREN */
-    if (0 == lexer_eat(INTEGER, input_str, window, head))
+    struct token *lparen, *token, *rparen;
+    struct node *node;
+    
+    token = lexer_eat(INTEGER, input_str, window);
+    if (NULL != token)
     {
-        return 0;
+        return ast_node_set(token);
     }  
  
-    if (0 == lexer_eat(LPAREN, input_str, window, head))
+    lparen = lexer_eat(LPAREN, input_str, window);
+    if (NULL != lparen)
     {
-        if (0 != expression(input_str, window, head))
+        node = expression(input_str, window);
+        if (NULL == node)
         {
             DEBUG;
-            return -1;
+            lparen = token_destroy(lparen);
+            return ast_destroy(node);
         }
-        if (0 != lexer_eat(RPAREN, input_str, window, head))
+        rparen = lexer_eat(RPAREN, input_str, window);
+        if (NULL == rparen)
         {
             DEBUG;
-            return -1;
+            lparen = token_destroy(lparen);
+            return ast_destroy(node);
         }
     }
+    rparen = token_destroy(rparen);
+    lparen = token_destroy(lparen);
 
-    return 0;  
+    return node; 
 }
 
-int term(const char *input_str, struct window *window, struct token **head)
+struct node *term(const char *input_str, struct window *window)
 {   
     /* term : factor ((MULTIPLY | DIVIDE) factor) * */
-    factor(input_str, window, head);
+    struct token *op;
+    struct node *node;
 
-    while (1)
+    node = factor(input_str, window);
+    if (NULL == node)
     {
-        if (0 == lexer_eat(MULTIPLY, input_str, window, head))
-        {
-            factor(input_str, window, head);
-        }
-        else if (0 == lexer_eat(DIVIDE, input_str, window, head))
-        {
-            factor(input_str, window, head);
-        }
-        break;
-    }
-
-    return 0;
-}
-
-int expression(const char *input_str, struct window *window, struct token **head)
-{
-    /* expr : term ((PLUS | MINUS) term) * */
-    term(input_str, window, head);
-
-    while (1)
-    {
-        if (0 == lexer_eat(PLUS, input_str, window, head))
-        {
-            term(input_str, window, head);
-        }
-        else if (0 == lexer_eat(MINUS, input_str, window, head))
-        {
-            term(input_str, window, head);
-        }
-        break;
-    }
-
-    return 0;
-}
-
-struct token *parser_parse(const char *input_str)
-{    
-    struct window window;
-    struct token *head;
-
-    head = NULL;
-    window.left = window.right = 0;
-
-    expression(input_str, &window, &head);
-    
-    if (0 != lexer_eat(EOFILE, input_str, &window, &head))
-    {
-        DEBUG;
         return NULL;
     }
-    
-    return head;
+
+    while (1)
+    {
+        op = lexer_eat(MULTIPLY, input_str, window);
+        if (NULL != op)
+        {
+            node = ast_node_add(node, op, factor(input_str, window));
+            continue;
+        }
+        
+        op = lexer_eat(DIVIDE, input_str, window);
+        if (NULL != op)
+        {
+            node = ast_node_add(node, op, factor(input_str, window));
+            continue;
+        }  
+        break;
+    }
+
+    return node;
+}
+
+struct node *expression(const char *input_str, struct window *window)
+{
+    /* expr : term ((PLUS | MINUS) term) * */
+    struct token *op;
+    struct node *node;
+
+    node = term(input_str, window);
+    if (NULL == node)
+    {
+        return NULL;
+    }
+
+    while (1)
+    {
+        op = lexer_eat(PLUS, input_str, window);
+        if (NULL != op)
+        {
+            node = ast_node_add(node, op, factor(input_str, window));
+            continue;
+        }
+        
+        op = lexer_eat(MINUS, input_str, window);
+        if (NULL != op)
+        {
+            node = ast_node_add(node, op, factor(input_str, window));
+            continue;
+        } 
+        break; 
+    }
+
+    return node;
+}
+
+struct node *parser_parse(const char *input_str)
+{    
+    struct window window;
+
+    window.left = window.right = 0;
+
+    return expression(input_str, &window);
 }

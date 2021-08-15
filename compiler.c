@@ -2,18 +2,21 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "parser.h"
 #include "token.h"
 #include "lexer.h"
-#include "parser.h"
-#include "utils.h"
+#include "ast.h"
 
 int main() 
 {
     /* TODO: read file, lex file, parse tokens to AST, convert AST to machine code, 
     save machine code to file */
+
+    struct token *token_list;
+    struct node *ast;
     
     FILE *fp;
-    char *input_str = "312 *   ((91+2) /3)";
+    char *input_str = "1+2+3";
 
     fp = fopen("/home/gerard/GIT/compiler/compiler.s", "w");
     if (NULL == fp)
@@ -21,12 +24,22 @@ int main()
         return EXIT_FAILURE;
     }
 
-    if (NULL == parser_parse(input_str))
+    // TODO: split up lexing and parsing: parse a list of tokens
+    // token_list = lexer_lex(intput_str);
+    // if (NULL == token)
+
+
+
+    ast = parser_parse(input_str);
+    if (NULL == ast)
     {
         return EXIT_FAILURE;
     }
     
-    // generate assembly from head
+    ast_print(ast);
+
+
+    // generate assembly from ast
 
     return EXIT_SUCCESS;
 }

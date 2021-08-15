@@ -1,6 +1,6 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
-struct token *parser_parse(const char *input_str);
+struct node *parser_parse(const char *input_str);
 
 #endif // _PARSER_H_

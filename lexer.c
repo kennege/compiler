@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "utils.h"
 #include "token.h"
 #include "lexer.h"
-#include "utils.h"
 
 static char *lexer_is_int(const char *input_str, struct window *window)
 {
@@ -100,9 +100,10 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     return NULL;
 }
 
-int lexer_eat(const char *input_type, const char *input_str, struct window *window, struct token **head)
+struct token *lexer_eat(const char *input_type, const char *input_str, struct window *window)
 {
     char *type;
+    struct token *new;
      
     while (1)
     {
@@ -110,7 +111,7 @@ int lexer_eat(const char *input_type, const char *input_str, struct window *wind
         if (NULL == type)
         {
             DEBUG;
-            return -1;
+            return NULL;
         }
 
         if (0 == strcmp(WHITESPACE, type))
@@ -123,17 +124,18 @@ int lexer_eat(const char *input_type, const char *input_str, struct window *wind
         if (0 == strcmp(type, input_type))
         {
             window->right++;
-            if (0 != token_save(type, &input_str[window->left], window->right - window->left, head))
+            new = token_generate(type, &input_str[window->left], window->right - window->left);
+            if (NULL == new)
             {
                 DEBUG;
-                return -1;
+                return NULL;
             }
             window->left = window->right;
-            return 0;
+            return new;
         } 
 
         break;
     }
 
-    return -1;
+    return NULL;
 }

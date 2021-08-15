@@ -1,12 +1,11 @@
 CC = gcc
 
 TARGET = compiler
-SRCS = compiler.c lexer.c parser.c token.c utils.c
+SRCS = compiler.c utils.c token.c lexer.c ast.c parser.c 
 OPTIONS = -g -Wall
-LIBS := -lm
 
 $(TARGET): $(SRCS)
-	$(CC) $(OPTIONS) -o $(TARGET) $(SRCS) $(LIBS)
+	$(CC) $(OPTIONS) -o $(TARGET) $(SRCS)
 
 all:$(TARGET)
 

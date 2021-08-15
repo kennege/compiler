@@ -1,7 +1,7 @@
 #ifndef _LEXER_H_
 #define _LEXER_H_
 
-int lexer_eat(const char *input_type, const char *input_str, struct window *window, struct token **head);
+struct token *lexer_eat(const char *input_type, const char *input_str, struct window *window);
 
 /* Arithmetic */
 #define INTEGER "INTEGER"

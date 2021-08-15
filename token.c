@@ -2,34 +2,22 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "token.h"
-#include "lexer.h"
 #include "utils.h"
+#include "token.h"
 
+#define DISPLAY_BUFF 40
 struct token 
 {
-    union value
-    {
-        char *chr;
-        int num;
-    } *value;
-
-    int id;
+    char *value;
     char *type;
-
-    struct token *next;
+    char *display;
 };
 
-static struct token *token_destroy(struct token *token)
+struct token *token_destroy(struct token *token)
 {
     if (NULL == token)
     {
         return NULL;
-    }
-    
-    if (0 == token->value->num)
-    {
-        free(token->value->chr);
     }
 
     if (NULL != token->value)
@@ -42,11 +30,16 @@ static struct token *token_destroy(struct token *token)
         free(token->type);
     }
 
+    if (NULL != token->display)
+    {
+        free(token->display);
+    }
+
     free(token);
     
     return NULL;
 }
-static struct token *token_create()
+struct token *token_create()
 {
     struct token *token;
 
@@ -56,45 +49,29 @@ static struct token *token_create()
         DEBUG;
         return NULL;
     }
+    memset(token, 0, sizeof(*token));
+    
     token->value = malloc(sizeof(token->value));
     if (NULL == token->value)
     {
         DEBUG;
-        free(token);
-        return NULL;
+        return token_destroy(token);
     }
-    token->id = 0;
-    token->value->num = 0;
-    token->value->chr = NULL;
-    token->type = NULL;
 
-    token->next = NULL;
+    token->display = malloc(DISPLAY_BUFF * sizeof(token->display[0]));
+    if (NULL == token->display)
+    {
+        DEBUG;
+        return token_destroy(token);
+    }
+
+    token->value = NULL;
+    token->type = NULL;
 
     return token;
 }
 
-static void token_push(struct token **head, struct token *new)
-{
-    // TODO: add to AST
-    if (NULL != *head)
-    {
-        new->id = (*head)->id + 1;
-    }
-    else
-    {
-        new->id = 0;
-    }
-    
-    new->next = *head;
-    *head = new;
-}
-
-static void token_print(const struct token *token)
-{
-    printf("TOKEN(%s, %s)\n", token->type, token->value->chr);
-}
-
-int token_save(const char *type, const char *value, int value_len, struct token **head)
+struct token *token_generate(const char *type, const char *value, int value_len)
 {
     struct token *token;
 
@@ -102,27 +79,31 @@ int token_save(const char *type, const char *value, int value_len, struct token 
     if (NULL == token)
     {
         DEBUG;
-        return -1;
+        return NULL;
     }
     
-    token->value->chr = string_cpy(value, value_len);
-    if (NULL == token->value->chr)
+    token->value = string_cpy(value, value_len);
+    if (NULL == token->value)
     {
         DEBUG;
-        token = token_destroy(token);
-        return -1;
+        return token_destroy(token);
     }
 
     token->type = string_cpy(type, strlen(type));
     if (NULL == token->type)
     {
         DEBUG;
-        token = token_destroy(token);
-        return -1;
+        return token_destroy(token);
     }
 
-    token_push(head, token);
-    token_print(token);
 
-    return 0;
+    // snprintf(token->display, DISPLAY_BUFF, "TOKEN(%s, %s)", token->type, token->value);
+    snprintf(token->display, DISPLAY_BUFF, "%s", token->value);
+
+    return token;
+}
+
+char *token_display(struct token *token)
+{
+    return token->display;
 }
