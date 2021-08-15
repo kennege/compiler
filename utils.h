@@ -1,12 +1,6 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
-struct window
-{
-    int left;
-    int right;
-};
-
 char *string_cpy(const char *input_str, size_t len);
 int num_digits(int input_num);
 

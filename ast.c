@@ -5,15 +5,17 @@
 #include "token.h"
 #include "ast.h"
 
+struct node
+{
+    struct node *left;
+    struct token *op;
+    struct node *right;
+
+    int set;
+};
 
 struct node *ast_destroy(struct node *ast)
 {
-    if (NULL == ast->op)
-    {
-        return NULL;
-    }
-    ast->op = token_destroy(ast->op);
-
     if (NULL != ast->left)
     {
         ast->left = ast_destroy(ast->left);
@@ -29,7 +31,7 @@ struct node *ast_destroy(struct node *ast)
     return NULL;
 }
 
-struct node *ast_node_create()
+static struct node *ast_node_create()
 {
     struct node *ast;
 
@@ -59,23 +61,26 @@ struct node *ast_node_create()
     return ast;
 }
 
-void ast_print(struct node *ast)
+void ast_print(struct node *ast, int level, char *location)
 {
-    if (ast->set)
+    if (0 != ast->set)
     {
-        printf("  %s \n", token_display(ast->op));
-        if (ast->left->set && ast->right->set)
+        printf("Level %d, %s: %s \n", level, location, token_get_display(ast->op));
+    
+        if (0 != ast->left->set)
         {
-            // printf("%s    ", token_display(ast->left->op));
-            printf("    %s\n", token_display(ast->right->op));
+            printf("Level %d, %s: %s \n", level, location, token_get_display(ast->left->op));
         }
-        else if (ast->left->set)
+        
+        if (0 != ast->right->set)
         {
-            printf("%s      ", token_display(ast->left->op));
+            printf("Level %d, %s: %s \n", level, location, token_get_display(ast->right->op));
         }
-        ast_print(ast->left);
-        ast_print(ast->right);
-    }    
+        printf("\n");
+
+        ast_print(ast->left, level + 1, "left");
+        ast_print(ast->right, level + 1, "right");
+    }
 }
 
 struct node *ast_node_add(struct node *left, struct token *op, struct node *right)
@@ -92,7 +97,7 @@ struct node *ast_node_add(struct node *left, struct token *op, struct node *righ
     node->set = 1;
     node->right = right;
  
-    // printf("ADD: left %s, op: %s, right: %s", token_display(left->op), token_display(op), token_display(right->op));
+    // printf("ADD: left %s, op: %s, right: %s\n", token_get_display(left->op), token_get_display(op), token_get_display(right->op));
 
     return node;
 }
@@ -108,7 +113,6 @@ struct node *ast_node_set(struct token *op)
     }
     node->op = op;
     node->set = 1;
-    // printf("SET: %s", token_display(op));
 
     return node;
 }

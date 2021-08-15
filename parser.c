@@ -8,52 +8,47 @@
 #include "lexer.h"
 #include "parser.h"
 
-struct node *term(const char *input_str, struct window *window);
-struct node *expression(const char *input_str, struct window *window);
+struct node *expression(struct token **token_list);
 
-struct node *factor(const char *input_str, struct window *window)
+struct node *factor(struct token **token_list)
 {
     /* factor : INTEGER | LPAREN expr RPAREN */
     struct token *lparen, *token, *rparen;
     struct node *node;
     
-    token = lexer_eat(INTEGER, input_str, window);
+    token = lexer_eat(INTEGER, token_list);
     if (NULL != token)
     {
         return ast_node_set(token);
     }  
  
-    lparen = lexer_eat(LPAREN, input_str, window);
+    lparen = lexer_eat(LPAREN, token_list);
     if (NULL != lparen)
     {
-        node = expression(input_str, window);
+        node = expression(token_list);
         if (NULL == node)
         {
             DEBUG;
-            lparen = token_destroy(lparen);
             return ast_destroy(node);
         }
-        rparen = lexer_eat(RPAREN, input_str, window);
+        rparen = lexer_eat(RPAREN, token_list);
         if (NULL == rparen)
         {
             DEBUG;
-            lparen = token_destroy(lparen);
             return ast_destroy(node);
         }
     }
-    rparen = token_destroy(rparen);
-    lparen = token_destroy(lparen);
-
+    
     return node; 
 }
 
-struct node *term(const char *input_str, struct window *window)
+struct node *term(struct token **token_list)
 {   
     /* term : factor ((MULTIPLY | DIVIDE) factor) * */
     struct token *op;
     struct node *node;
 
-    node = factor(input_str, window);
+    node = factor(token_list);
     if (NULL == node)
     {
         return NULL;
@@ -61,17 +56,17 @@ struct node *term(const char *input_str, struct window *window)
 
     while (1)
     {
-        op = lexer_eat(MULTIPLY, input_str, window);
+        op = lexer_eat(MULTIPLY, token_list);
         if (NULL != op)
         {
-            node = ast_node_add(node, op, factor(input_str, window));
+            node = ast_node_add(node, op, factor(token_list));
             continue;
         }
         
-        op = lexer_eat(DIVIDE, input_str, window);
+        op = lexer_eat(DIVIDE, token_list);
         if (NULL != op)
         {
-            node = ast_node_add(node, op, factor(input_str, window));
+            node = ast_node_add(node, op, factor(token_list));
             continue;
         }  
         break;
@@ -80,13 +75,13 @@ struct node *term(const char *input_str, struct window *window)
     return node;
 }
 
-struct node *expression(const char *input_str, struct window *window)
+struct node *expression(struct token **token_list)
 {
     /* expr : term ((PLUS | MINUS) term) * */
     struct token *op;
     struct node *node;
 
-    node = term(input_str, window);
+    node = term(token_list);
     if (NULL == node)
     {
         return NULL;
@@ -94,17 +89,17 @@ struct node *expression(const char *input_str, struct window *window)
 
     while (1)
     {
-        op = lexer_eat(PLUS, input_str, window);
+        op = lexer_eat(PLUS, token_list);
         if (NULL != op)
         {
-            node = ast_node_add(node, op, factor(input_str, window));
+            node = ast_node_add(node, op, factor(token_list));
             continue;
         }
         
-        op = lexer_eat(MINUS, input_str, window);
+        op = lexer_eat(MINUS, token_list);
         if (NULL != op)
         {
-            node = ast_node_add(node, op, factor(input_str, window));
+            node = ast_node_add(node, op, factor(token_list));
             continue;
         } 
         break; 
@@ -113,11 +108,7 @@ struct node *expression(const char *input_str, struct window *window)
     return node;
 }
 
-struct node *parser_parse(const char *input_str)
+struct node *parser_parse(struct token *token_list)
 {    
-    struct window window;
-
-    window.left = window.right = 0;
-
-    return expression(input_str, &window);
+    return expression(&token_list);
 }

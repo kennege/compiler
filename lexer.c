@@ -6,6 +6,12 @@
 #include "token.h"
 #include "lexer.h"
 
+struct window
+{
+    int left;
+    int right;
+};
+
 static char *lexer_is_int(const char *input_str, struct window *window)
 {
     char *ints = "0123456789";
@@ -100,42 +106,58 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     return NULL;
 }
 
-struct token *lexer_eat(const char *input_type, const char *input_str, struct window *window)
+struct token *lexer_eat(const char *type, struct token **token_list)
 {
-    char *type;
-    struct token *new;
-     
-    while (1)
+    struct token *token;
+
+    if (NULL == token_list)
     {
-        type = lexer_get_token_type(input_str, window);      
+        return NULL;
+    }
+
+    if (0 == strcmp(type, token_type(*token_list)))
+    {
+        token = token_list_pop(token_list); 
+        return token;
+    }
+
+    return NULL;
+}
+
+struct token *lexer_lex(char *input_str)
+{
+    struct window window;
+    struct token *token_list;
+    char *type;
+    int n_chr, len;
+
+    window.left = window.right = n_chr = 0;
+    len = strlen(input_str);
+    token_list = NULL;
+    while (window.right < len + 1)
+    {
+        type = lexer_get_token_type(input_str, &window);      
         if (NULL == type)
         {
             DEBUG;
-            return NULL;
+            return token_list_destroy(token_list);
         }
 
         if (0 == strcmp(WHITESPACE, type))
         {
-            window->left++;
-            window->right++;
+            window.left++;
+            window.right++;
             continue;
-        }   
-        
-        if (0 == strcmp(type, input_type))
-        {
-            window->right++;
-            new = token_generate(type, &input_str[window->left], window->right - window->left);
-            if (NULL == new)
-            {
-                DEBUG;
-                return NULL;
-            }
-            window->left = window->right;
-            return new;
         } 
 
-        break;
+        if (0 != token_list_append(type, &input_str[window.left], window.right + 1 - window.left, &token_list))
+        {
+            DEBUG;
+            return token_list_destroy(token_list);
+        };
+        window.right++;
+        window.left = window.right;
     }
 
-    return NULL;
+    return token_list;
 }
