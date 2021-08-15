@@ -100,16 +100,9 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     return NULL;
 }
 
-struct token *lexer_eat(const char *input_type, const char *input_str, struct window *window)
+int lexer_eat(const char *input_type, const char *input_str, struct window *window, struct token **head)
 {
     char *type;
-    struct token *token;
-
-    token = token_create();
-    if (NULL == token)
-    {
-        return NULL;
-    }
      
     while (1)
     {
@@ -117,7 +110,7 @@ struct token *lexer_eat(const char *input_type, const char *input_str, struct wi
         if (NULL == type)
         {
             DEBUG;
-            return token_destroy(token);
+            return -1;
         }
 
         if (0 == strcmp(WHITESPACE, type))
@@ -130,17 +123,17 @@ struct token *lexer_eat(const char *input_type, const char *input_str, struct wi
         if (0 == strcmp(type, input_type))
         {
             window->right++;
-            if (0 != token_set(token, type, &input_str[window->left], window->right - window->left))
+            if (0 != token_save(type, &input_str[window->left], window->right - window->left, head))
             {
                 DEBUG;
-                return token_destroy(token);
+                return -1;
             }
             window->left = window->right;
-            return token;
+            return 0;
         } 
 
         break;
     }
 
-    return token_destroy(token);
+    return -1;
 }

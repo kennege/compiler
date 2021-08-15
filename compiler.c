@@ -21,10 +21,12 @@ int main()
         return EXIT_FAILURE;
     }
 
-    if (0 != parser_parse(input_str, fp))
+    if (NULL == parser_parse(input_str))
     {
         return EXIT_FAILURE;
     }
     
+    // generate assembly from head
+
     return EXIT_SUCCESS;
 }

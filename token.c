@@ -14,63 +14,13 @@ struct token
         int num;
     } *value;
 
+    int id;
     char *type;
+
+    struct token *next;
 };
 
-struct token *token_create()
-{
-    struct token *token;
-
-    token = malloc(sizeof(*token));
-    if (NULL == token)
-    {
-        return NULL;
-    }
-    token->value = malloc(sizeof(token->value));
-    if (NULL == token->value)
-    {
-        free(token);
-        return NULL;
-    }
-    token->value->num = 0;
-    token->value->chr = NULL;
-    token->type = NULL;
-
-    return token;
-}
-
-int token_set(struct token *token, const char *type, const char *value, int value_len)
-{
-    char *q;
-    
-    if (0 == strcmp(INTEGER, type))
-    {
-        token->value->num = strtol(value, &q, 10);
-    }
-    else
-    {
-        token->value->chr = string_cpy(value, value_len);
-        if (NULL == token->value->chr)
-        {
-            token = token_destroy(token);
-            DEBUG;
-            return -1;
-        }
-    }     
-    
-    token->type = string_cpy(type, strlen(type));
-    if (NULL == token->type)
-    {
-        token = token_destroy(token);
-        DEBUG;
-        return -1;
-    }
-
-    token_print(token);
-    return 0;
-}
-
-struct token *token_destroy(struct token *token)
+static struct token *token_destroy(struct token *token)
 {
     if (NULL == token)
     {
@@ -96,51 +46,83 @@ struct token *token_destroy(struct token *token)
     
     return NULL;
 }
-
-struct token *token_add(struct token *a, struct token *b)
+static struct token *token_create()
 {
-    printf("%d + %d\n",a->value->num, b->value->num);
-    a->value->num = a->value->num + b->value->num;
-    b = token_destroy(b);
+    struct token *token;
 
-    return a;
-}
-
-struct token *token_subtract(struct token *a, struct token *b)
-{
-    printf("%d - %d\n",a->value->num, b->value->num);
-    a->value->num = a->value->num - b->value->num;
-    b = token_destroy(b);
-
-    return a;
-}
-
-struct token *token_multiply(struct token *a, struct token *b)
-{
-    printf("%d * %d\n",a->value->num, b->value->num);
-    a->value->num = a->value->num * b->value->num;
-    b = token_destroy(b);
-
-    return a;
-}
-
-struct token *token_divide(struct token *a, struct token *b)
-{
-    printf("%d / %d\n",a->value->num, b->value->num);
-    a->value->num = a->value->num / b->value->num;
-    b = token_destroy(b);
-
-    return a;
-}
-
-void token_print(const struct token *token)
-{
-    if (0 == strcmp(INTEGER, token->type))
+    token = malloc(sizeof(*token));
+    if (NULL == token)
     {
-        printf("TOKEN(%s, %d)\n", token->type, token->value->num);    
+        DEBUG;
+        return NULL;
+    }
+    token->value = malloc(sizeof(token->value));
+    if (NULL == token->value)
+    {
+        DEBUG;
+        free(token);
+        return NULL;
+    }
+    token->id = 0;
+    token->value->num = 0;
+    token->value->chr = NULL;
+    token->type = NULL;
+
+    token->next = NULL;
+
+    return token;
+}
+
+static void token_push(struct token **head, struct token *new)
+{
+    // TODO: add to AST
+    if (NULL != *head)
+    {
+        new->id = (*head)->id + 1;
     }
     else
     {
-        printf("TOKEN(%s, %s)\n", token->type, token->value->chr);
+        new->id = 0;
     }
+    
+    new->next = *head;
+    *head = new;
+}
+
+static void token_print(const struct token *token)
+{
+    printf("TOKEN(%s, %s)\n", token->type, token->value->chr);
+}
+
+int token_save(const char *type, const char *value, int value_len, struct token **head)
+{
+    struct token *token;
+
+    token = token_create();
+    if (NULL == token)
+    {
+        DEBUG;
+        return -1;
+    }
+    
+    token->value->chr = string_cpy(value, value_len);
+    if (NULL == token->value->chr)
+    {
+        DEBUG;
+        token = token_destroy(token);
+        return -1;
+    }
+
+    token->type = string_cpy(type, strlen(type));
+    if (NULL == token->type)
+    {
+        DEBUG;
+        token = token_destroy(token);
+        return -1;
+    }
+
+    token_push(head, token);
+    token_print(token);
+
+    return 0;
 }
