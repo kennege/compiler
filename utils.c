@@ -35,12 +35,32 @@ int num_digits(int input_num)
     return num_digits;
 }
 
-// void debug_printf(const char *format, ...)
-// {
-//     char buffer[256];
-//     va_list args;
-//     va_start(args, format);
-//     vsprintf(buffer, format, args);
-//     va_end(args);
-//     printf("ERROR: %s, %d %s \n", __FILE__, __LINE__, buffer);
-// }
+int string_compare(const char *a, const char *b)
+{
+    int i;
+
+    i = 0;
+    while (a[i] != '\0' && b[i] != '\0')
+    {
+        if (a[i] != b[i])
+        {
+            return -1;
+        }
+        i++;
+    }
+
+    return 0;
+}
+
+size_t string_len(const char *str)
+{
+    size_t i;
+
+    i = 0;
+    while (str[i] != '\0' && str[i] != '\n')
+    {
+        i++;
+    }
+
+    return i;
+}

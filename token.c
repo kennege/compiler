@@ -6,6 +6,7 @@
 #include "token.h"
 
 #define DISPLAY_BUFF 32
+
 struct token 
 {
     char *value;
@@ -45,6 +46,7 @@ static struct token *token_destroy(struct token *token)
     
     return NULL;
 }
+
 static struct token *token_create()
 {
     struct token *token;
@@ -89,7 +91,7 @@ static struct token *token_generate(const char *type, const char *value, int val
         return token_destroy(token);
     }
 
-    token->type = string_cpy(type, strlen(type));
+    token->type = string_cpy(type, string_len(type));
     if (NULL == token->type)
     {
         DEBUG;
@@ -159,14 +161,24 @@ int token_list_append(char *type, char *value, int length, struct token **list_h
     return 0;
 }
 
-char *token_type(const struct token *token)
+int token_type_compare(const struct token *token, const char *type)
 {
-    return token->type;
+    if (0 == string_compare(token->type, type))
+    {
+        return 0;
+    }
+
+    return -1;
 }
 
 char *token_get_display(const struct token *token)
 {
     return token->display;
+}
+
+char *token_get_value(const struct token *token)
+{
+    return token->value;
 }
 
 void token_list_display(const struct token *token)

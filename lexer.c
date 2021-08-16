@@ -17,7 +17,7 @@ static char *lexer_is_int(const char *input_str, struct window *window)
     char *ints = "0123456789";
     int n_ints;
 
-    n_ints = strlen(ints);
+    n_ints = string_len(ints);
     for (int i=0; i<n_ints; i++)
     {
         if (input_str[window->right] == ints[i])
@@ -67,7 +67,7 @@ static char *lexer_is_rparen(const char *input_str, struct window *window)
 static char *lexer_is_eof(const char *input_str, struct window *window)
 {
     // TODO: change to EOF when reading file
-    return (0 == strcmp(&input_str[window->left], "\0")) ? EOFILE : NULL;
+    return (0 == string_compare(&input_str[window->left], "\0")) ? EOFILE : NULL;
 }
 
 static char *lexer_is_space(const char *input_str, struct window *window)
@@ -85,8 +85,8 @@ static const struct {
     { lexer_is_divide },
     { lexer_is_lparen },
     { lexer_is_rparen },
-    { lexer_is_eof },
     { lexer_is_space },
+    { lexer_is_eof },
 };
 
 static char *lexer_get_token_type(const char *input_str, struct window *window)
@@ -108,17 +108,14 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
 
 struct token *lexer_eat(const char *type, struct token **token_list)
 {
-    struct token *token;
-
     if (NULL == token_list)
     {
         return NULL;
     }
 
-    if (0 == strcmp(type, token_type(*token_list)))
+    if (0 == token_type_compare(*token_list, type))
     {
-        token = token_list_pop(token_list); 
-        return token;
+        return token_list_pop(token_list); 
     }
 
     return NULL;
@@ -132,7 +129,7 @@ struct token *lexer_lex(char *input_str)
     int n_chr, len;
 
     window.left = window.right = n_chr = 0;
-    len = strlen(input_str);
+    len = string_len(input_str);
     token_list = NULL;
     while (window.right < len + 1)
     {
@@ -143,7 +140,7 @@ struct token *lexer_lex(char *input_str)
             return token_list_destroy(token_list);
         }
 
-        if (0 == strcmp(WHITESPACE, type))
+        if (0 == string_compare(WHITESPACE, type))
         {
             window.left++;
             window.right++;

@@ -5,15 +5,6 @@
 #include "token.h"
 #include "ast.h"
 
-struct node
-{
-    struct node *left;
-    struct token *op;
-    struct node *right;
-
-    int set;
-};
-
 struct node *ast_destroy(struct node *ast)
 {
     if (NULL != ast->left)
@@ -57,6 +48,7 @@ static struct node *ast_node_create()
     memset(ast->right, 0, sizeof(*ast->right));
 
     ast->set = 0;
+    ast->type = NULL;
 
     return ast;
 }
@@ -83,7 +75,7 @@ void ast_print(struct node *ast, int level, char *location)
     }
 }
 
-struct node *ast_node_add(struct node *left, struct token *op, struct node *right)
+struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right)
 {
     struct node *node;
 
@@ -95,14 +87,32 @@ struct node *ast_node_add(struct node *left, struct token *op, struct node *righ
     node->left = left;
     node->op = op;
     node->set = 1;
+    node->type = BINARY;
     node->right = right;
+
+    // printf("ADD: left: %s, op: %s, right: %s\n",token_get_display(node->left->op), token_get_display(node->op), token_get_display(node->right->op));
  
-    // printf("ADD: left %s, op: %s, right: %s\n", token_get_display(left->op), token_get_display(op), token_get_display(right->op));
+    return node;
+}
+
+struct node *ast_unary_node_add(struct token *op, struct node *left)
+{
+    struct node *node;
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->left = left;
+    node->op = op;
+    node->set = 1;
+    node->type = UNARY;
 
     return node;
 }
 
-struct node *ast_node_set(struct token *op)
+struct node *ast_value_node_set(struct token *op)
 {
     struct node *node;
 
@@ -113,6 +123,7 @@ struct node *ast_node_set(struct token *op)
     }
     node->op = op;
     node->set = 1;
+    node->type = VALUE;
 
     return node;
 }

@@ -5,8 +5,9 @@ struct token;
 
 struct token *token_list_destroy(struct token *token_list);
 int token_list_append(char *type, char *value, int length, struct token **list_head);
-char *token_type(const struct token *token);
+int token_type_compare(const struct token *token, const char *type);
 struct token *token_list_pop(struct token **token_list);
+char *token_get_value(const struct token *token);
 
 void token_list_display(const struct token *token);
 char *token_get_display(const struct token *token);

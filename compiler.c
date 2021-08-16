@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include "ast.h"
+#include "translator.h"
 
 int main() 
 {
@@ -15,9 +16,10 @@ int main()
 
     struct token *token_list;
     struct node *ast;
+    int result;
     
     FILE *fp;
-    char *input_str = "12+(2+3)";
+    char *input_str = "5 --- +- (3+4) -      +2";
 
     fp = fopen("/home/gerard/GIT/compiler/compiler.s", "w");
     if (NULL == fp)
@@ -39,9 +41,11 @@ int main()
         return EXIT_FAILURE;
     }
     
-    ast_print(ast, 0, "root");
+    // ast_print(ast, 0, "root");
 
-    // generate assembly from ast
+    result = translator_translate(ast);
+
+    printf("Result: %d\n", result);
 
     token_list = token_list_destroy(token_list);
     ast = ast_destroy(ast);

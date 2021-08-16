@@ -2,6 +2,8 @@
 #define _UTILS_H_
 
 char *string_cpy(const char *input_str, size_t len);
+int string_compare(const char *a, const char *b);
+size_t string_len(const char *str);
 int num_digits(int input_num);
 
 #define LENGTH(x) (sizeof(x)/sizeof(x[0]))
