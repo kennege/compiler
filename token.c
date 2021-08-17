@@ -171,6 +171,16 @@ int token_type_compare(const struct token *token, const char *type)
     return -1;
 }
 
+char *token_list_peak(const struct token *token_list)
+{
+    if (NULL != token_list->next)
+    {
+        return token_list->next->type;
+    }
+
+    return NULL;
+}
+
 char *token_get_display(const struct token *token)
 {
     return token->display;

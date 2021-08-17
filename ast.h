@@ -8,12 +8,17 @@ struct node
     struct node *right;
 
     char *type;
+    char *id;
     int set;
+    struct node *children;
 };
 
+/* NODE TYPES */
 #define BINARY "BINARY"
 #define UNARY "UNARY"
 #define VALUE "VALUE"
+#define ASSIGNMENT "ASSIGNMENT"
+#define VARIABLE "VARIABLE"
 
 struct node *ast_destroy(struct node *ast);
 

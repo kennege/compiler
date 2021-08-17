@@ -12,9 +12,81 @@ struct window
     int right;
 };
 
-static char *lexer_is_int(const char *input_str, struct window *window)
+static const struct {
+    char *keyword;
+} reserved_keywords[] = {
+    { ASSIGN },
+    { CONST },
+    { FUNC },
+    { VAR },
+    { INT },
+    { BOOL },
+    { FLOAT },
+    { STRING },
+    { EOFILE },
+};
+
+static const struct {
+    char *character;
+} reserved_characters[] = {
+    { PLUS },
+    { MINUS },
+    { MULTIPLY },
+    { DIVIDE },
+    { LPAREN },
+    { RPAREN },
+    { LBRACE },
+    { WHITESPACE },
+};
+
+static int lexer_keyword_match(const char *input_str, const char *str, struct window *window)
 {
-    char *ints = "0123456789";
+    int n_chars, str_ind;
+
+    str_ind = 0;
+    n_chars = string_len(str);
+    for (int i=window->right; i<window->right + n_chars; i++)
+    {
+        if (input_str[i] != str[str_ind])
+        {
+            return -1;
+        }
+        str_ind++;
+    }
+    window->right += n_chars - 1;
+
+    return 0;
+}
+
+static char *lexer_is_reserved_keyword(const char *input_str, struct window *window)
+{
+    for (int i=0; i<LENGTH(reserved_keywords); i++)
+    {
+        if (0 == lexer_keyword_match(input_str, reserved_keywords[i].keyword, window))
+        {
+            return reserved_keywords[i].keyword;
+        }
+    }
+
+    return NULL;
+}
+
+static char *lexer_is_reserved_character(const char *input_str, struct window *window)
+{
+    for (int i=0; i<LENGTH(reserved_characters); i++)
+    {
+        if (input_str[window->left] == reserved_characters[i].character[0])
+        {
+            return reserved_characters[i].character;
+        }
+    }
+
+    return NULL;
+}
+
+static char *lexer_is_number(const char *input_str, struct window *window)
+{
+    char *ints = INTEGER;
     int n_ints;
 
     n_ints = string_len(ints);
@@ -23,7 +95,7 @@ static char *lexer_is_int(const char *input_str, struct window *window)
         if (input_str[window->right] == ints[i])
         {
             window->right++;
-            if (NULL == lexer_is_int(input_str, window))
+            if (NULL == lexer_is_number(input_str, window))
             {
                 window->right--;    
             }
@@ -34,68 +106,53 @@ static char *lexer_is_int(const char *input_str, struct window *window)
     return NULL;
 }
 
-static char *lexer_is_plus(const char *input_str, struct window *window)
+static char *lexer_is_variable_name(const char *input_str, struct window *window)
 {
-    return (input_str[window->left] == '+') ? PLUS : NULL;
-}
+    int input_str_len, num_chars, i;
 
-static char *lexer_is_minus(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == '-') ? MINUS : NULL;
-}
+    if ((NULL != lexer_is_reserved_keyword(input_str, window)) || 
+        (NULL != lexer_is_reserved_character(input_str, window)) ||
+        (NULL != lexer_is_number(input_str, window)))
+    {
+        return NULL;
+    }
 
-static char *lexer_is_multiply(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == '*') ? MULTIPLY : NULL;
+    input_str_len = strlen(&input_str[window->left]);
+    num_chars = strlen(CHARACTERS);
+    i = 0;
+    while (i < input_str_len)
+    {
+        for (int j=0; j<num_chars; j++)
+        {
+            if (input_str[window->left + i] == CHARACTERS[j])
+            {
+                i++;
+                window->right++;
+                continue;
+            }
+            return VAR;
+        }
+    }
+    
+    return NULL;
 }
-
-static char *lexer_is_divide(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == '/') ? DIVIDE : NULL;
-}
-
-static char *lexer_is_lparen(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == '(') ? LPAREN : NULL;
-}
-
-static char *lexer_is_rparen(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == ')') ? RPAREN : NULL;
-}
-
-static char *lexer_is_eof(const char *input_str, struct window *window)
-{
-    // TODO: change to EOF when reading file
-    return (0 == string_compare(&input_str[window->left], "\0")) ? EOFILE : NULL;
-}
-
-static char *lexer_is_space(const char *input_str, struct window *window)
-{
-    return (input_str[window->left] == ' ') ? WHITESPACE : NULL;
-}
-
-static const struct {
-    char *(*fn)(const char *input_str, struct window *window);
-} tab[] = {
-    { lexer_is_int },
-    { lexer_is_plus },
-    { lexer_is_minus },
-    { lexer_is_multiply },
-    { lexer_is_divide },
-    { lexer_is_lparen },
-    { lexer_is_rparen },
-    { lexer_is_space },
-    { lexer_is_eof },
-};
 
 static char *lexer_get_token_type(const char *input_str, struct window *window)
 {
     char *type;
 
-    for (int i=0; i<LENGTH(tab); i++)
+    static const struct {
+        char *(*fn)(const char *input_str, struct window *window);
+    } token_types[] = {
+        { lexer_is_number },
+        { lexer_is_reserved_character },
+        { lexer_is_reserved_keyword },
+        { lexer_is_variable_name },
+    };
+
+    for (int i=0; i<LENGTH(token_types); i++)
     {
-        type = tab[i].fn(input_str, window);
+        type = token_types[i].fn(input_str, window);
         if (NULL != type)
         {
             return type;
@@ -103,6 +160,7 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     }
 
     DEBUG;
+    printf("Didnt recognise %c\n",input_str[window->left]);
     return NULL;
 }
 

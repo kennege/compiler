@@ -12,7 +12,7 @@ struct node *expression(struct token **token_list);
 
 struct node *factor(struct token **token_list)
 {
-    /* factor : (PLUS | MINUS) factor : INTEGER | LPAREN expr RPAREN */
+    /* factor : (PLUS | MINUS) factor : INTEGER | LPAREN expr RPAREN | variable */
     struct token *lparen, *token, *rparen;
     struct node *node;
 
@@ -29,6 +29,12 @@ struct node *factor(struct token **token_list)
     }
 
     token = lexer_eat(INTEGER, token_list);
+    if (NULL != token)
+    {
+        return ast_value_node_set(token);
+    } 
+
+    token = lexer_eat(VAR, token_list);
     if (NULL != token)
     {
         return ast_value_node_set(token);

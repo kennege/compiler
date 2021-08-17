@@ -49,6 +49,8 @@ static struct node *ast_node_create()
 
     ast->set = 0;
     ast->type = NULL;
+    ast->id = NULL;
+    ast->children = NULL;
 
     return ast;
 }
@@ -127,3 +129,38 @@ struct node *ast_value_node_set(struct token *op)
 
     return node;
 }
+
+struct node *ast_assignment_node_create(struct node *left, struct token *op, struct node *right)
+{
+    struct node *node;
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->left = left;
+    node->op = op;
+    node->right = right;
+    node->type = ASSIGNMENT;
+    node->set = 1;
+
+    return node;
+}
+
+struct node *ast_variable_node_set(struct token *op)
+{
+    struct node *node;
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->op = op;
+    node->set = 1;
+    node->type = VARIABLE;
+
+    return node;
+}
+

@@ -15,11 +15,11 @@ int main()
     save machine code to file */
 
     struct token *token_list;
-    struct node *ast;
-    int result;
+    // struct node *ast;
+    // int result;
     
     FILE *fp;
-    char *input_str = "5 --- +- (3+4) -      +2";
+    char *input_str = "var := 5 --- +- (3+4) -      +2";
 
     fp = fopen("/home/gerard/GIT/compiler/compiler.s", "w");
     if (NULL == fp)
@@ -35,20 +35,20 @@ int main()
 
     token_list_display(token_list);
 
-    ast = parser_parse(token_list);
-    if (NULL == ast)
-    {
-        return EXIT_FAILURE;
-    }
+    // ast = parser_parse(token_list);
+    // if (NULL == ast)
+    // {
+    //     return EXIT_FAILURE;
+    // }
     
     // ast_print(ast, 0, "root");
 
-    result = translator_translate(ast);
+    // result = translator_translate(ast);
 
-    printf("Result: %d\n", result);
+    // printf("Result: %d\n", result);
 
     token_list = token_list_destroy(token_list);
-    ast = ast_destroy(ast);
+    // ast = ast_destroy(ast);
 
     return EXIT_SUCCESS;
 }
