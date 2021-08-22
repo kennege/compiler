@@ -19,11 +19,15 @@ static const struct {
     { CONST },
     { FUNC },
     { VAR },
+};
+
+static const struct {
+    char *type;
+} variable_types[] = {
     { INT },
     { BOOL },
     { FLOAT },
     { STRING },
-    { EOFILE },
 };
 
 static const struct {
@@ -36,7 +40,9 @@ static const struct {
     { LPAREN },
     { RPAREN },
     { LBRACE },
+    { RBRACE },
     { WHITESPACE },
+    { EQUALS },
 };
 
 static int lexer_keyword_match(const char *input_str, const char *str, struct window *window)
@@ -84,15 +90,41 @@ static char *lexer_is_reserved_character(const char *input_str, struct window *w
     return NULL;
 }
 
+static char *lexer_is_special_character(const char *input_str, struct window *window)
+{
+    if (input_str[window->left] == NEWLINE[0])
+    {
+        return NEWLINE_TYPE;
+    }
+    if (input_str[window->left] == EOFILE[0])
+    {
+        return EOFILE_TYPE;
+    }
+
+    return NULL;
+}
+
+static char *lexer_is_variable_type(const char *input_str, struct window *window)
+{
+    for (int i=0; i<LENGTH(variable_types); i++)
+    {
+        if (0 == lexer_keyword_match(input_str, variable_types[i].type, window))
+        {
+            return VARTYPE;
+        }
+    }
+
+    return NULL; 
+}
+
 static char *lexer_is_number(const char *input_str, struct window *window)
 {
-    char *ints = INTEGER;
     int n_ints;
 
-    n_ints = string_len(ints);
+    n_ints = string_len(INTEGER);
     for (int i=0; i<n_ints; i++)
     {
-        if (input_str[window->right] == ints[i])
+        if (input_str[window->right] == INTEGER[i])
         {
             window->right++;
             if (NULL == lexer_is_number(input_str, window))
@@ -106,34 +138,24 @@ static char *lexer_is_number(const char *input_str, struct window *window)
     return NULL;
 }
 
-static char *lexer_is_variable_name(const char *input_str, struct window *window)
+static char *lexer_is_word(const char *input_str, struct window *window)
 {
-    int input_str_len, num_chars, i;
+    int n_chars;
 
-    if ((NULL != lexer_is_reserved_keyword(input_str, window)) || 
-        (NULL != lexer_is_reserved_character(input_str, window)) ||
-        (NULL != lexer_is_number(input_str, window)))
+    n_chars = strlen(CHARACTER);
+    for (int i=0; i<n_chars; i++)
     {
-        return NULL;
-    }
-
-    input_str_len = strlen(&input_str[window->left]);
-    num_chars = strlen(CHARACTERS);
-    i = 0;
-    while (i < input_str_len)
-    {
-        for (int j=0; j<num_chars; j++)
+        if (input_str[window->right] == CHARACTER[i])
         {
-            if (input_str[window->left + i] == CHARACTERS[j])
+            window->right++;
+            if (NULL == lexer_is_word(input_str, window))
             {
-                i++;
-                window->right++;
-                continue;
+                window->right--;    
             }
-            return VAR;
+            return WORD;
         }
     }
-    
+                
     return NULL;
 }
 
@@ -146,8 +168,10 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     } token_types[] = {
         { lexer_is_number },
         { lexer_is_reserved_character },
+        { lexer_is_special_character },
         { lexer_is_reserved_keyword },
-        { lexer_is_variable_name },
+        { lexer_is_variable_type },
+        { lexer_is_word },
     };
 
     for (int i=0; i<LENGTH(token_types); i++)
@@ -160,22 +184,7 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     }
 
     DEBUG;
-    printf("Didnt recognise %c\n",input_str[window->left]);
-    return NULL;
-}
-
-struct token *lexer_eat(const char *type, struct token **token_list)
-{
-    if (NULL == token_list)
-    {
-        return NULL;
-    }
-
-    if (0 == token_type_compare(*token_list, type))
-    {
-        return token_list_pop(token_list); 
-    }
-
+    fprintf(stderr, "Didnt recognise %c at character %d\n",input_str[window->left], window->left);
     return NULL;
 }
 
@@ -184,12 +193,12 @@ struct token *lexer_lex(char *input_str)
     struct window window;
     struct token *token_list;
     char *type;
-    int n_chr, len;
+    int n_chr, str_size;
 
     window.left = window.right = n_chr = 0;
-    len = string_len(input_str);
+    str_size = strlen(input_str) + 1;
     token_list = NULL;
-    while (window.right < len + 1)
+    while (window.right < str_size)
     {
         type = lexer_get_token_type(input_str, &window);      
         if (NULL == type)
@@ -198,18 +207,19 @@ struct token *lexer_lex(char *input_str)
             return token_list_destroy(token_list);
         }
 
-        if (0 == string_compare(WHITESPACE, type))
+        if (0 == strcmp(WHITESPACE, type))
         {
             window.left++;
             window.right++;
             continue;
         } 
 
-        if (0 != token_list_append(type, &input_str[window.left], window.right + 1 - window.left, &token_list))
+        if (0 != token_list_append(type, &input_str[window.left], window.right - window.left + 1, &token_list))
         {
             DEBUG;
             return token_list_destroy(token_list);
         };
+
         window.right++;
         window.left = window.right;
     }

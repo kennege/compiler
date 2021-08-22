@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "utils.h"
 #include "token.h"
@@ -47,7 +48,7 @@ static struct token *token_destroy(struct token *token)
     return NULL;
 }
 
-static struct token *token_create()
+static struct token *token_create(const char *type, const char *value, int value_len)
 {
     struct token *token;
 
@@ -64,24 +65,6 @@ static struct token *token_create()
     {
         DEBUG;
         return token_destroy(token);
-    }
-
-    token->value = NULL;
-    token->type = NULL;
-    token->next = NULL;
-
-    return token;
-}
-
-static struct token *token_generate(const char *type, const char *value, int value_len)
-{
-    struct token *token;
-
-    token = token_create();
-    if (NULL == token)
-    {
-        DEBUG;
-        return NULL;
     }
     
     token->value = string_cpy(value, value_len);
@@ -120,24 +103,12 @@ struct token *token_list_destroy(struct token *token_list)
     return NULL;
 }
 
-struct token *token_list_pop(struct token **token_list)
-{
-    struct token *tmp;
-    tmp = *token_list;
-    if (NULL != tmp)
-    {
-        *token_list = (*token_list)->next;
-    }
-
-    return tmp;
-}
-
-int token_list_append(char *type, char *value, int length, struct token **list_head)
+int token_list_append(const char *type, const char *value, int length, struct token **list_head)
 {
     struct token *new;
     struct token *last;
 
-    new = token_generate(type, value, length);
+    new = token_create(type, value, length);
     if (NULL == new)
     {
         DEBUG;
@@ -161,9 +132,48 @@ int token_list_append(char *type, char *value, int length, struct token **list_h
     return 0;
 }
 
-int token_type_compare(const struct token *token, const char *type)
+struct token **token_list_step(struct token **token_list)
 {
-    if (0 == string_compare(token->type, type))
+    if (NULL == *token_list)
+    {
+        return NULL;
+    }
+
+    *token_list = (*token_list)->next;
+
+    return token_list;
+}
+
+struct token *token_list_index(struct token *token_list, int index)
+{
+    for (int i=0; i<index; i++)
+    {
+        token_list_step(&token_list);
+    }
+
+    return token_list;
+}
+
+struct token *token_list_pop(struct token **token_list)
+{
+    struct token *tmp;
+    tmp = *token_list;
+    if (NULL != tmp)
+    {
+       token_list_step(token_list);
+    }
+
+    return tmp;
+}
+
+int token_compare(const struct token *token, const char *type)
+{
+    if (NULL == token)
+    {
+        return -1;
+    }
+
+    if (0 == strcmp(token->type, type))
     {
         return 0;
     }
@@ -171,14 +181,56 @@ int token_type_compare(const struct token *token, const char *type)
     return -1;
 }
 
-char *token_list_peak(const struct token *token_list)
+int token_list_compare_all(struct token **token_list, int peak_length, ...) 
 {
-    if (NULL != token_list->next)
+    va_list args;
+    char *type;
+
+    if (NULL == token_list)
     {
-        return token_list->next->type;
+        return -1;
     }
 
-    return NULL;
+    va_start(args, peak_length);
+    for (int i=0; i<peak_length; i++)
+    {
+        type = va_arg(args, char *);
+        if (0 != token_compare(token_list_index(*token_list, i), type))
+        {
+            return -1; 
+        }
+    }
+    va_end(args);
+
+    return 0;
+}
+
+int token_list_compare_any(struct token **token_list, int n_options, ...) 
+{
+    va_list args;
+    char *type;
+
+    if (NULL == token_list)
+    {
+        return -1;
+    }
+
+    va_start(args, n_options);
+    for (int i=0; i<n_options; i++)
+    {
+        type = va_arg(args, char*);
+        for (int j=0; j<n_options; j++)
+        {
+            if (0 == token_compare(*token_list, type))
+            {
+                return 0; 
+            }
+        }
+
+    }
+    va_end(args);
+
+    return -1;
 }
 
 char *token_get_display(const struct token *token)
@@ -191,7 +243,7 @@ char *token_get_value(const struct token *token)
     return token->value;
 }
 
-void token_list_display(const struct token *token)
+void token_list_print(const struct token *token)
 {
     printf("\nTOKEN LIST: \n");
     while (NULL != token)

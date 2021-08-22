@@ -21,6 +21,38 @@ char *string_cpy(const char *input_str, size_t len)
     return out_str;
 }
 
+char *string_cpycat(const char *fmt, ...)
+{
+    char *out_str;
+    size_t out_size;
+    va_list args;
+
+    if (NULL == fmt)
+    {
+        return NULL;
+    }
+
+    va_start(args, fmt);
+    out_size = vsnprintf(NULL, 0, fmt, args) + 1;
+    va_end(args);
+    if (out_size <= 1)
+    {
+        return NULL;
+    }
+
+    out_str = malloc(out_size * sizeof(out_str[0]));
+    if (NULL == out_str)
+    {
+        return NULL;
+    }
+
+    va_start(args, fmt);
+    vsnprintf(out_str, out_size, fmt, args);
+    va_end(args);
+
+    return out_str;
+}
+
 int num_digits(int input_num)
 {
     int num_digits;
@@ -33,23 +65,6 @@ int num_digits(int input_num)
     }
     
     return num_digits;
-}
-
-int string_compare(const char *a, const char *b)
-{
-    int i;
-
-    i = 0;
-    while (a[i] != '\0' && b[i] != '\0')
-    {
-        if (a[i] != b[i])
-        {
-            return -1;
-        }
-        i++;
-    }
-
-    return 0;
 }
 
 size_t string_len(const char *str)

@@ -1,7 +1,6 @@
 #ifndef _LEXER_H_
 #define _LEXER_H_
 
-struct token *lexer_eat(const char *type, struct token **token_list);
 struct token *lexer_lex(char *input_str);
 
 /* Reserved Keywords */
@@ -13,7 +12,6 @@ struct token *lexer_lex(char *input_str);
 #define BOOL "bool"
 #define FLOAT "float32"
 #define STRING "string"
-#define EOFILE "/0"
 
 /* Reserved Characters */
 #define PLUS "+"
@@ -24,15 +22,23 @@ struct token *lexer_lex(char *input_str);
 #define RPAREN ")"
 #define LBRACE "{"
 #define RBRACE "}"
+#define EQUALS "="
 #define WHITESPACE " "
 
-/* Forbidden Characters */
+/* Special Characters */
+#define EOFILE "\0"
+#define NEWLINE "\n"
 
+/* Descriptors */
+#define WORD "__word__"
+#define VARTYPE "__vartype__"
+#define NEWLINE_TYPE "__newline__"
+#define EOFILE_TYPE "__eofile__"
 
 /* Numbers */
 #define INTEGER "0123456789"
 
 /* Characters */
-#define CHARACTERS "abcdefghijklmnopqrstuvwxyz"
+#define CHARACTER "abcdefghijklmnopqrstuvwxyz"
 
 #endif // _LEXER_H_
