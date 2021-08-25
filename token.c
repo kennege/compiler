@@ -17,7 +17,7 @@ struct token
     struct token *next;
 };
 
-static struct token *token_destroy(struct token *token)
+struct token *token_destroy(struct token *token)
 {
     if (NULL == token)
     {
@@ -48,7 +48,7 @@ static struct token *token_destroy(struct token *token)
     return NULL;
 }
 
-static struct token *token_create(const char *type, const char *value, int value_len)
+struct token *token_create(const char *type, const char *value, int value_len)
 {
     struct token *token;
 
@@ -233,14 +233,52 @@ int token_list_compare_any(struct token **token_list, int n_options, ...)
     return -1;
 }
 
+struct token *token_cpy(const struct token *token)
+{
+    struct token *new;
+
+    if (NULL == token)
+    {
+        return NULL;
+    }
+
+    new = token_create(token->type, token->value, strlen(token->value));
+    if (NULL == new)
+    {
+        return NULL;
+    }
+
+    return new;
+}
+
 char *token_get_display(const struct token *token)
 {
+    if (NULL == token)
+    {
+        return NULL;
+    }
+
     return token->display;
 }
 
 char *token_get_value(const struct token *token)
 {
+    if (NULL == token)
+    {
+        return NULL;
+    }
+    
     return token->value;
+}
+
+char *token_get_type(const struct token *token)
+{
+    if (NULL == token)
+    {
+        return NULL;
+    }
+    
+    return token->type;
 }
 
 void token_list_print(const struct token *token)

@@ -54,7 +54,6 @@ static struct node *ast_node_create()
 
     ast->set = 0;
     ast->type = NULL;
-    ast->id = NULL;
     ast->next = NULL;
 
     return ast;
@@ -124,7 +123,6 @@ struct node *ast_variable_node_add(struct token *op)
     node->op = op;
     node->set = 1;
     node->type = VARIABLE;
-    node->id = token_get_value(op);
 
     return node;
 }
@@ -192,7 +190,7 @@ size_t ast_assignment_node_length(const struct node *list_head)
     return length;
 }
 
-void ast_print(struct node *ast, int level, char *location)
+void ast_print(const struct node *ast, int level, char *location)
 {
     if (0 != ast->set)
     {

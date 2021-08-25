@@ -8,7 +8,6 @@ struct node
     struct node *right;
 
     char *type;
-    char *id;
     int set;
 
     struct node *next;
@@ -34,6 +33,6 @@ const struct node *ast_assignment_node_index(const struct node *list_head, int i
 size_t ast_assignment_node_length(const struct node *list_head);
 
 
-void ast_print(struct node *ast, int level, char *location);
+void ast_print(const struct node *ast, int level, char *location);
 
 #endif // _AST_H_
