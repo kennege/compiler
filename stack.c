@@ -56,11 +56,9 @@ static struct stack *stack_create(const struct token *var_name, const struct tok
         return stack_destroy(new);
     }
 
-    new->var = token_cpy(var);
-    if (NULL == new->var)
+    if (NULL != var)
     {
-        DEBUG;
-        return stack_destroy(new);
+        new->var = token_cpy(var);
     }
 
     new->next = NULL;
@@ -85,6 +83,21 @@ struct stack *stack_destroy_all(struct stack *stack)
     return NULL;
 }
 
+static int stack_insert(struct stack *stack, const struct token *var_name, struct token *var)
+{
+    while (NULL != stack)
+    {
+        if (0 == strcmp(token_get_value(stack->var_name), token_get_value(var_name)))
+        {
+            stack->var = var;
+            return 0;
+        }
+        stack = stack->next;
+    }
+
+    return -1;
+}
+
 struct token *stack_extract(const struct stack *stack, const struct token *var_name)
 {
     while (NULL != stack)
@@ -99,9 +112,14 @@ struct token *stack_extract(const struct stack *stack, const struct token *var_n
     return NULL;
 }
 
-int stack_push(struct stack **list_head, const struct token *var_name, const struct token *var)
+int stack_push(struct stack **list_head, const struct token *var_name, struct token *var)
 {   
     struct stack *new;
+
+    if (0 == stack_insert(*list_head, var_name, var))
+    {
+        return 0;
+    }
 
     new = stack_create(var_name, var);
     if (NULL == new)

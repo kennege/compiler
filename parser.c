@@ -58,13 +58,14 @@ struct node *parser_parse_variable(struct token **token_list)
 
 struct node *parser_parse_factor(struct token **token_list)
 {
-    /* factor : (PLUS | MINUS | STRING) factor (NUMBER | LPAREN expr RPAREN) */
+    /* factor : [NEWLINE | SEMICOLON] (PLUS | MINUS | STRING) factor (NUMBER | (LPAREN expr RPAREN)) */
     struct node *node;
     struct token *token;
 
-    if (0 == token_compare(*token_list, NEWLINE_TYPE))
+    if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
     {   
-        return parser_parse_factor(token_list_step(token_list));
+        token_list = token_list_step(token_list);
+        return parser_parse_factor(token_list);
     }
 
     if (0 == token_list_compare_any(token_list, 2, PLUS, MINUS))
@@ -157,8 +158,8 @@ struct node *parser_parse_expression(struct token **token_list)
 
 struct node *parser_parse_assignment(struct token **token_list)
 {
-    /* assignment : variable EQUALS expression |
-                    variable ASSIGN expression | */ 
+    /* assignment : (variable EQUALS expression) |
+                    (variable ASSIGN expression) | */ 
     struct node *node;
     struct token *token;
 
@@ -175,7 +176,7 @@ struct node *parser_parse_assignment(struct token **token_list)
         if (NULL == node)
         {
             DEBUG;
-            return NULL;
+            return ast_destroy(node);
         }
         return node;
     }
@@ -185,24 +186,24 @@ struct node *parser_parse_assignment(struct token **token_list)
 
 struct node *parser_parse_assignment_list(struct token **token_list)
 {
-    /* assignment list : assignment | assignment NEWLINE assignment_list */
+    /* assignment list : assignment | (assignment (NEWLINE | SEMICOLON) assignment_list) */
     struct node *node;
 
     node = parser_parse_assignment(token_list);
     if (NULL == node)
     {
-        return NULL;
+        return ast_destroy(node);
     }
 
     while (1)
     {
-        if (0 == token_compare(*token_list, NEWLINE_TYPE))
+        if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
         {
             token_list = token_list_step(token_list);
-            if (0 != ast_assignment_node_append(node, parser_parse_assignment(token_list)))
+            if (0 != ast_node_append(node, parser_parse_assignment(token_list)))
             {
                 DEBUG;
-                return NULL;
+                return ast_destroy(node);
             }
             continue;
         }
@@ -212,33 +213,115 @@ struct node *parser_parse_assignment_list(struct token **token_list)
     return node;
 }
 
-struct node *parser_parse_program(struct token **token_list)
+struct token *parser_parse_function_declaration(struct token **token_list)
 {
-    /* program : FUNC STRING LBRACE assignment_list RBRACE | 
-                assignment_list | expression */
+    /* function declaration : FUNC STRING LPAREN [arguments] RPAREN 
+        [NEWLINE | SEMICOLON] [RETURN (STRING | INT | FLOAT )] [NEWLINE | SEMICOLON] LBRACE */
+    struct token *name;
 
-    struct node *node;
-
-    if (0 == token_compare(*token_list, FUNC))
-    { //TODO: doesn't handle function name() or \n
+    if (0 != token_list_compare_all(token_list, 4, FUNC, STRING, LPAREN, RPAREN))
+    {   
+        return NULL;
+    }
+    token_list = token_list_step(token_list);
+    name = token_list_pop(token_list);
+    token_list = token_list_step(token_list_step(token_list));
+    
+    while (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
+    {
         token_list = token_list_step(token_list);
-        if (0 == token_compare(*token_list, LBRACE))
+    }
+
+    if (0 != token_compare(*token_list, LBRACE))
+    {
+        DEBUG;
+        return NULL;
+    }
+    token_list = token_list_step(token_list);
+
+    return name;
+}
+
+struct node *parser_parse_function(struct token **token_list)
+{
+    /*  function : function declaration [NEWLINE | SEMICOLON] assignment_list [NEWLINE | SEMICOLON] RBRACE */
+    struct node *node;
+    struct token *name;
+
+    name = parser_parse_function_declaration(token_list);
+    if (NULL == name)
+    {
+        return NULL;
+    }
+
+    while(1)
+    {
+        if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
         {
             token_list = token_list_step(token_list);
-            node = parser_parse_assignment_list(token_list);
+            node = ast_function_node_add(name, parser_parse_assignment_list(token_list));
             if (NULL == node)
-            {
-                DEBUG;
-                return NULL;
-            }
-
-            if (0 != token_compare(*token_list, RBRACE))
             {
                 DEBUG;
                 return ast_destroy(node);
             }
-            token_list = token_list_step(token_list);
+            continue;
         }
+        break;
+    }
+
+    if (0 == token_compare(*token_list, RETURN))
+    {
+        //TODO parse return
+    }
+
+    if (0 != token_compare(*token_list, RBRACE))
+    {
+        DEBUG;
+        return ast_destroy(node);
+    }
+    token_list = token_list_step(token_list);
+
+    return node;
+}
+
+struct node *parser_parse_function_list(struct token **token_list)
+{
+    /* function list : function | (function (NEWLINE | SEMICOLON) function_list) */
+    struct node *node;
+
+    node = parser_parse_function(token_list);
+    if (NULL == node)
+    {
+        return ast_destroy(node);
+    }
+
+    while (1)
+    {
+        if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
+        {
+            token_list = token_list_step(token_list);
+            if (0 != ast_node_append(node, parser_parse_function(token_list)))
+            {
+                DEBUG;
+                return ast_destroy(node);
+            }
+            continue;
+        }
+        break;
+    }
+
+    return node;
+}
+struct node *parser_parse_program(struct token **token_list)
+{ //TODO: remove options that dont involve functions
+    /* program : function_list | assignment_list | expression */
+
+    struct node *node;
+
+    node = parser_parse_function_list(token_list);
+    if (NULL != node)
+    {
         return node;
     }
 

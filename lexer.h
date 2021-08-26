@@ -9,6 +9,7 @@ struct token *lexer_lex(char *input_str);
 #define CONST "const"
 #define FUNC "func"
 #define VAR "var"
+#define RETURN "return"
 
 /* Variable Types */
 #define INT "int"
@@ -28,6 +29,7 @@ struct token *lexer_lex(char *input_str);
 #define EQUALS "="
 #define WHITESPACE " "
 #define DOT "."
+#define SEMICOLON ";"
 
 /* Special Characters */
 #define EOFILE "\0"

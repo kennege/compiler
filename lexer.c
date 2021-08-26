@@ -15,6 +15,7 @@ struct window
 static const struct {
     char *keyword;
 } reserved_keywords[] = {
+    { RETURN },
     { ASSIGN },
     { CONST },
     { FUNC },
@@ -44,6 +45,7 @@ static const struct {
     { RBRACE },
     { EQUALS },
     { MULTIPLY },
+    { SEMICOLON },
 };
 
 static int lexer_keyword_match(const char *input_str, const char *str, struct window *window)

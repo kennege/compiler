@@ -32,7 +32,7 @@ static struct token *float_to_token(float result)
     char *value;
     size_t size;
 
-    size = snprintf(NULL, 0, "%f", result) + 1;
+    size = snprintf(NULL, 0, "%.02f", result) + 1;
     
     value = malloc(size * sizeof(*value));
     if (NULL == value)
@@ -40,7 +40,7 @@ static struct token *float_to_token(float result)
         return NULL;
     }
     
-    snprintf(value, size, "%f", result);
+    snprintf(value, size, "%.02f", result);
 
     output = token_create(FLOAT, value, size-1);
     if (NULL == output)
@@ -127,7 +127,7 @@ static struct token *float_negate(float in_float)
         return NULL;
     }
 
-    return NULL;
+    return output;
 }
 
 struct token *float_binary_operations(const struct token *l_token, const struct token *r_token, const char *op)

@@ -19,18 +19,22 @@ struct node
 #define BINARY "BINARY"
 #define VARIABLE "VARIABLE"
 #define ASSIGNMENT "ASSIGNMENT"
+#define FUNCTION "FUNCTION"
+#define PROGRAM "PROGRAM"
 
 struct node *ast_destroy(struct node *ast);
 
-struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right);
-struct node *ast_unary_node_add(struct token *op, struct node *left);
 struct node *ast_value_node_set(struct token *op);
+struct node *ast_unary_node_add(struct token *op, struct node *left);
 struct node *ast_variable_node_add(struct token *op);
+struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right);
 struct node *ast_assignment_node_add(struct node *left, struct token *op, struct node *right);
+struct node *ast_function_node_add(struct token *name, struct node *assignment_list);
+struct node *ast_program_node_add(struct node *function_list);
 
-int ast_assignment_node_append(struct node *list_head, struct node *new);
-const struct node *ast_assignment_node_index(const struct node *list_head, int index);
-size_t ast_assignment_node_length(const struct node *list_head);
+int ast_node_append(struct node *list_head, struct node *new);
+const struct node *ast_node_index(const struct node *list_head, int index);
+size_t ast_num_nodes(const struct node *list_head);
 
 
 void ast_print(const struct node *ast, int level, char *location);

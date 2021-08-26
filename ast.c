@@ -5,6 +5,7 @@
 #include "token.h"
 #include "ast.h"
 #include "utils.h"
+
 struct node *ast_destroy(struct node *ast)
 {
     if (NULL == ast)
@@ -70,6 +71,7 @@ struct node *ast_binary_node_add(struct node *left, struct token *op, struct nod
     }
     node->left = left;
     node->op = op;
+    node->right = NULL;
     node->set = 1;
     node->type = BINARY;
     node->right = right;
@@ -88,6 +90,7 @@ struct node *ast_unary_node_add(struct token *op, struct node *left)
     }
     node->left = left;
     node->op = op;
+    node->right = NULL;
     node->set = 1;
     node->type = UNARY;
 
@@ -103,13 +106,14 @@ struct node *ast_value_node_set(struct token *op)
     {
         return NULL;
     }
+    node->left = NULL;
     node->op = op;
+    node->right = NULL;
     node->set = 1;
     node->type = VALUE;
 
     return node;
 }
-
 
 struct node *ast_variable_node_add(struct token *op)
 {
@@ -120,9 +124,11 @@ struct node *ast_variable_node_add(struct token *op)
     {
         return NULL;
     }
+    node->left = NULL;
     node->op = op;
-    node->set = 1;
+    node->right = NULL;
     node->type = VARIABLE;
+    node->set = 1;
 
     return node;
 }
@@ -145,7 +151,43 @@ struct node *ast_assignment_node_add(struct node *left, struct token *op, struct
     return node;
 }
 
-int ast_assignment_node_append(struct node *list_head, struct node *new)
+struct node *ast_function_node_add(struct token *name, struct node *assignment_list)
+{
+    struct node *node;
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->left = NULL;
+    node->op = name;
+    node->right = assignment_list;
+    node->type = FUNCTION;
+    node->set = 1;
+
+    return node;
+}
+
+struct node *ast_program_node_add(struct node *function_list)
+{
+    struct node *node;
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->left = function_list;
+    node->op = NULL;
+    node->right = NULL;
+    node->type = PROGRAM;
+    node->set = 1;
+
+    return node;
+}
+
+int ast_node_append(struct node *list_head, struct node *new)
 {   
     struct node *last;
 
@@ -166,7 +208,7 @@ int ast_assignment_node_append(struct node *list_head, struct node *new)
     return 0;
 }
 
-const struct node *ast_assignment_node_index(const struct node *list_head, int index)
+const struct node *ast_node_index(const struct node *list_head, int index)
 {
     for (int i=0; i<index; i++)
     {
@@ -176,7 +218,7 @@ const struct node *ast_assignment_node_index(const struct node *list_head, int i
     return list_head;
 }
 
-size_t ast_assignment_node_length(const struct node *list_head)
+size_t ast_num_nodes(const struct node *list_head)
 {
     size_t length;
 
@@ -189,6 +231,7 @@ size_t ast_assignment_node_length(const struct node *list_head)
 
     return length;
 }
+
 
 void ast_print(const struct node *ast, int level, char *location)
 {

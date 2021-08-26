@@ -14,12 +14,14 @@ static int integer_from_token(const struct token *token, int *in_int)
     in_str = token_get_value(token);
     if (NULL == in_str)
     {
+        DEBUG;
         return -1;
     }
 
     sscanf(in_str, "%d", in_int);
     if (NULL == in_int)
     {
+        DEBUG;
         return -1;
     }
 
@@ -37,6 +39,7 @@ static struct token *integer_to_token(int result)
     value = malloc(size * sizeof(*value));
     if (NULL == value)
     {
+        DEBUG;
         return NULL;
     }
     
@@ -45,6 +48,7 @@ static struct token *integer_to_token(int result)
     output = token_create(INT, value, size-1);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
     
@@ -59,6 +63,7 @@ static struct token *integer_add(int l_int, int r_int)
     output = integer_to_token(l_int + r_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -72,6 +77,7 @@ static struct token *integer_subtract(int l_int, int r_int)
     output = integer_to_token(l_int - r_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -85,6 +91,7 @@ static struct token *integer_multiply(int l_int, int r_int)
     output = integer_to_token(l_int * r_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -98,6 +105,7 @@ static struct token *integer_divide(int l_int, int r_int)
     output = integer_to_token(l_int / r_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -111,6 +119,7 @@ static struct token *integer_pass(int in_int)
     output = integer_to_token(in_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -124,10 +133,11 @@ static struct token *integer_negate(int in_int)
     output = integer_to_token(-in_int);
     if (NULL == output)
     {
+        DEBUG;
         return NULL;
     }
 
-    return NULL;
+    return output;
 }
 
 struct token *integer_binary_operations(const struct token *l_token, const struct token *r_token, const char *op)

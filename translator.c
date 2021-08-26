@@ -92,15 +92,39 @@ static struct token *translator_operate_binary(const struct token *left, const s
     return NULL;
 }
 
+static struct token *translator_visit_program_node(const struct node *node)
+{
+    return translator_visit(node->left);
+}
+
+static struct token *translator_visit_function_node(const struct node *node)
+{
+    const struct node *next_node;
+    size_t n_function_nodes;
+
+    n_function_nodes = ast_num_nodes(node);
+    for (int i=0; i<n_function_nodes; i++)
+    {
+        next_node = ast_node_index(node, i);
+        if (0 != stack_push(&stack, next_node->op, translator_visit(next_node->right)))
+        {
+            DEBUG;
+            return NULL;
+        }
+    }
+    
+    return NULL;
+}
+
 static struct token *translator_visit_assignment_node(const struct node *node)
 {
     const struct node *next_node;
     size_t n_assignment_nodes;
 
-    n_assignment_nodes = ast_assignment_node_length(node);
+    n_assignment_nodes = ast_num_nodes(node);
     for (int i=0; i<n_assignment_nodes; i++)
     {
-        next_node = ast_assignment_node_index(node, i);
+        next_node = ast_node_index(node, i);
         if (0 != stack_push(&stack, next_node->left->op, translator_visit(next_node->right)))
         {
             DEBUG;
@@ -108,7 +132,6 @@ static struct token *translator_visit_assignment_node(const struct node *node)
         }
     }
     
-    DEBUG;
     return NULL;
 }
 
@@ -193,11 +216,13 @@ struct token *translator_visit(const struct node *node)
         char *node_type;
         struct token *(*fn)(const struct node *node);
     } tab[] = {
-        { .node_type = BINARY, .fn = translator_visit_binary_node },
         { .node_type = UNARY, .fn = translator_visit_unary_node },
         { .node_type = VALUE, .fn = translator_visit_value_node },
         { .node_type = VARIABLE, .fn = translator_visit_variable_node },
+        { .node_type = BINARY, .fn = translator_visit_binary_node },
         { .node_type = ASSIGNMENT, .fn = translator_visit_assignment_node },
+        { .node_type = FUNCTION, .fn = translator_visit_function_node },
+        { .node_type = PROGRAM, .fn = translator_visit_program_node },
     };
 
     for (int i=0; i<LENGTH(tab); i++)
@@ -222,7 +247,6 @@ struct token *translator_translate(const struct node *ast)
         return NULL;
     }
 
-    ast_print(ast, 0, "root");
     result = translator_visit(ast);
     stack_print(stack);
 
