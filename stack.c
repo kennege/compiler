@@ -18,7 +18,6 @@ static struct stack *stack_destroy(struct stack *stack)
 {
     if (NULL == stack)
     {
-        DEBUG;
         return NULL;
     }
 
@@ -59,6 +58,11 @@ static struct stack *stack_create(const struct token *var_name, const struct tok
     if (NULL != var)
     {
         new->var = token_cpy(var);
+        if (NULL == new->var)
+        {
+            DEBUG;
+            return NULL;
+        }
     }
 
     new->next = NULL;
@@ -89,7 +93,11 @@ static int stack_insert(struct stack *stack, const struct token *var_name, struc
     {
         if (0 == strcmp(token_get_value(stack->var_name), token_get_value(var_name)))
         {
-            stack->var = var;
+            stack->var = token_cpy(var);
+            if (NULL == stack->var)
+            {
+                return -1;
+            }
             return 0;
         }
         stack = stack->next;
@@ -112,9 +120,10 @@ struct token *stack_extract(const struct stack *stack, const struct token *var_n
     return NULL;
 }
 
-int stack_push(struct stack **list_head, const struct token *var_name, struct token *var)
+int stack_append(struct stack **list_head, const struct token *var_name, struct token *var)
 {   
     struct stack *new;
+    struct stack *last;
 
     if (0 == stack_insert(*list_head, var_name, var))
     {
@@ -122,26 +131,43 @@ int stack_push(struct stack **list_head, const struct token *var_name, struct to
     }
 
     new = stack_create(var_name, var);
-    if (NULL == new)
+    if (NULL == *list_head)
     {
-        DEBUG;
-        return -1;
+        *list_head = new;
+        return 0;
     }
 
-    new->next = *list_head;
-    *list_head = new;
+    last = *list_head;
+    while (last->next != NULL)
+    {
+        last = last->next;
+    }
+
+    last->next = new;
 
     return 0;
 }
 
-struct stack *stack_pop(struct stack **list_head)
-{   
-    struct stack *temp;
+int stack_destroy_local(struct stack **list_head, const struct token *scope_name)
+{
+    struct stack *current, *next;
 
-    temp = *list_head;
-    *list_head = temp->next;
+    if (NULL == *list_head)
+    {
+        return -1;
+    }
+        
+    current = *list_head;
+    while (NULL != current && 0 != strcmp(token_get_value(current->var_name), token_get_value(scope_name)))  
+    {
+        next = current->next;   
+        current = stack_destroy(current);
+        current = next;
+    }
 
-    return temp;
+    *list_head = current;
+
+    return 0;
 }
 
 void stack_print(const struct stack *stack)
@@ -149,7 +175,7 @@ void stack_print(const struct stack *stack)
     printf("\nstack: \n");
     while (NULL != stack)
     {
-        printf("%s = %s\n", token_get_value(stack->var_name), token_get_value(stack->var));
+        printf("%s = %s\n", token_get_display(stack->var_name), token_get_display(stack->var));
         stack = stack->next;
     }
     printf("\n");

@@ -18,6 +18,7 @@ struct node
 #define UNARY "UNARY"
 #define BINARY "BINARY"
 #define VARIABLE "VARIABLE"
+#define DECLARATION "DECLARATION"
 #define ASSIGNMENT "ASSIGNMENT"
 #define FUNCTION "FUNCTION"
 #define PROGRAM "PROGRAM"
@@ -29,7 +30,9 @@ struct node *ast_unary_node_add(struct token *op, struct node *left);
 struct node *ast_variable_node_add(struct token *op);
 struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right);
 struct node *ast_assignment_node_add(struct node *left, struct token *op, struct node *right);
+struct node *ast_declaration_node_add(struct node *left, struct token *op, struct node *right);
 struct node *ast_function_node_add(struct token *name, struct node *assignment_list);
+int ast_function_node_add_return(struct node *function_node, struct node *return_value);
 struct node *ast_program_node_add(struct node *function_list);
 
 int ast_node_append(struct node *list_head, struct node *new);

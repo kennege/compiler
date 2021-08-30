@@ -28,8 +28,12 @@ struct token *interpreter(char *input_str)
         fprintf(stderr, "ERROR: Empty program detected.\n");
         return NULL;
     }
-    // token_list_print(token_list);
-    // ast_print(ast, 0, "root");
+
+    if (DEBUG_PRINT)
+    {
+        token_list_print(token_list);
+        ast_print(ast, 0, "root");
+    }
     
     result = translator_translate(ast);
 

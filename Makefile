@@ -1,7 +1,7 @@
 CC = gcc
 
 TARGET = compiler
-SRCS = compiler.c utils.c token.c lexer.c parser.c ast.c translator.c stack.c integer.c float.c string.c test.c
+SRCS = compiler.c utils.c token.c lexer.c parser.c ast.c translator.c stack.c integer.c float.c string.c scope_table.c test.c
 OPTIONS = -g -Wall
 
 $(TARGET): $(SRCS)

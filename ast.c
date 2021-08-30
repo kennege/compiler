@@ -23,6 +23,7 @@ struct node *ast_destroy(struct node *ast)
         ast->right = ast_destroy(ast->right);
     }
 
+    ast->set = 0;
     free(ast);
 
     return NULL;
@@ -64,6 +65,11 @@ struct node *ast_binary_node_add(struct node *left, struct token *op, struct nod
 {
     struct node *node;
 
+    if (NULL == left || NULL == op || NULL == right)
+    {
+        return NULL;
+    }
+
     node = ast_node_create();
     if (NULL == node)
     {
@@ -83,6 +89,11 @@ struct node *ast_unary_node_add(struct token *op, struct node *left)
 {
     struct node *node;
 
+    if (NULL == op || NULL == left)
+    {
+        return NULL;
+    }
+
     node = ast_node_create();
     if (NULL == node)
     {
@@ -100,6 +111,11 @@ struct node *ast_unary_node_add(struct token *op, struct node *left)
 struct node *ast_value_node_set(struct token *op)
 {
     struct node *node;
+
+    if (NULL == op)
+    {
+        return NULL;
+    }
 
     node = ast_node_create();
     if (NULL == node)
@@ -119,6 +135,11 @@ struct node *ast_variable_node_add(struct token *op)
 {
     struct node *node;
 
+    if (NULL == op)
+    {
+        return NULL;
+    }
+
     node = ast_node_create();
     if (NULL == node)
     {
@@ -137,6 +158,11 @@ struct node *ast_assignment_node_add(struct node *left, struct token *op, struct
 {
     struct node *node;
 
+    if (NULL == left || NULL == op || NULL == right)
+    {
+        return NULL;
+    }
+
     node = ast_node_create();
     if (NULL == node)
     {
@@ -151,27 +177,72 @@ struct node *ast_assignment_node_add(struct node *left, struct token *op, struct
     return node;
 }
 
-struct node *ast_function_node_add(struct token *name, struct node *assignment_list)
+struct node *ast_declaration_node_add(struct node *left, struct token *op, struct node *right)
 {
     struct node *node;
+
+    if (NULL == left || NULL == op || NULL == right)
+    {
+        return NULL;
+    }
 
     node = ast_node_create();
     if (NULL == node)
     {
         return NULL;
     }
-    node->left = NULL;
+    node->left = left;
+    node->op = op;
+    node->right = right;
+    node->type = DECLARATION;
+    node->set = 1;
+
+    return node;
+}
+
+struct node *ast_function_node_add(struct token *name, struct node *assignment_list)
+{
+    struct node *node;
+
+    if (NULL == name || NULL == assignment_list)
+    {
+        return NULL;
+    }
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->left = assignment_list;
     node->op = name;
-    node->right = assignment_list;
+    node->right = NULL;
     node->type = FUNCTION;
     node->set = 1;
 
     return node;
 }
 
+int ast_function_node_add_return(struct node *function_node, struct node *return_value)
+{
+    if (NULL == return_value || NULL == function_node)
+    {
+        return -1;
+    }
+
+    function_node->right = return_value;
+
+    return 0;
+}
+
 struct node *ast_program_node_add(struct node *function_list)
 {
     struct node *node;
+
+    if (NULL == function_list)
+    {
+        return NULL;
+    }
 
     node = ast_node_create();
     if (NULL == node)
@@ -190,6 +261,11 @@ struct node *ast_program_node_add(struct node *function_list)
 int ast_node_append(struct node *list_head, struct node *new)
 {   
     struct node *last;
+
+    if (NULL == new)
+    {
+        return -1;
+    }
 
     if (NULL == list_head)
     {
@@ -232,27 +308,35 @@ size_t ast_num_nodes(const struct node *list_head)
     return length;
 }
 
-
 void ast_print(const struct node *ast, int level, char *location)
 {
-    if (0 != ast->set)
+    int print_left, print_right;
+
+    print_left = print_right = 0;
+    if (NULL != ast->op)
     {
-        printf("Level %d, %s: %s \n", level, location, token_get_display(ast->op));
+        printf("Level %d, %s, %s: %s \n", level, location, ast->type, token_get_display(ast->op));
     
-        if (0 != ast->left->set)
+        if (NULL != ast->left)
         {
-            printf("Level %d, %s: %s \n", level, location, token_get_display(ast->left->op));
+            printf("Level %d, %s, %s: %s \n", level, location, ast->left->type, token_get_display(ast->left->op));
+            print_left = 1;
         }
         
-        if (0 != ast->right->set)
+        if (NULL != ast->right)
         {
-            printf("Level %d, %s: %s \n", level, location, token_get_display(ast->right->op));
+            printf("Level %d, %s, %s: %s \n", level, location, ast->right->type, token_get_display(ast->right->op));
+            print_right = 1;
         }
         printf("\n");
 
-        ast_print(ast->left, level + 1, "left");
-        ast_print(ast->right, level + 1, "right");
+        if (print_left)
+        {
+            ast_print(ast->left, level + 1, "left");
+        }
+        if (print_right)
+        {
+            ast_print(ast->right, level + 1, "right");
+        }
     }
 }
-
-

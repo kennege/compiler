@@ -83,6 +83,8 @@ struct token *token_create(const char *type, const char *value, int value_len)
 
     snprintf(token->display, DISPLAY_BUFF, "TOKEN(%s, %s)", token->type, token->value);
 
+    token->next = NULL;
+
     return token;
 }
 
@@ -103,12 +105,10 @@ struct token *token_list_destroy(struct token *token_list)
     return NULL;
 }
 
-int token_list_append(const char *type, const char *value, int length, struct token **list_head)
+int token_list_append(struct token *new, struct token **list_head)
 {
-    struct token *new;
     struct token *last;
 
-    new = token_create(type, value, length);
     if (NULL == new)
     {
         DEBUG;
@@ -128,6 +128,29 @@ int token_list_append(const char *type, const char *value, int length, struct to
     }
 
     last->next = new;
+
+    return 0;
+}
+
+int token_list_create_and_append(const char *type, const char *value, int length, struct token **list_head)
+{
+    struct token *new;
+
+    new = token_create(type, value, length);
+
+    return token_list_append(new, list_head);
+}
+
+int token_exists(struct token *token, struct token *list)
+{
+    while (NULL != list)
+    {
+        if (0 == strcmp(token->value, list->value))
+        {
+            return 1;
+        }
+        list = list->next;
+    }
 
     return 0;
 }
@@ -239,12 +262,14 @@ struct token *token_cpy(const struct token *token)
 
     if (NULL == token)
     {
+        DEBUG;
         return NULL;
     }
 
     new = token_create(token->type, token->value, strlen(token->value));
     if (NULL == new)
     {
+        DEBUG;
         return NULL;
     }
 

@@ -10,52 +10,6 @@
 
 struct node *parser_parse_expression(struct token **token_list);
 
-struct node *parser_parse_variable(struct token **token_list)
-{
-    /* VAR STRING VARTYPE | VARTYPE STRING | STRING */
-    struct node *node;
-    struct token *token;
-
-    if (0 == token_compare(*token_list, STRING))
-    {
-        token = token_list_pop(token_list);
-        return ast_variable_node_add(token);
-    }
-
-    if (0 == token_compare(*token_list, VARTYPE))
-    {
-        token_list = token_list_step(token_list);
-        if (0 != token_compare(*token_list, STRING))
-        {
-            DEBUG;
-            return NULL;
-        }
-        token = token_list_pop(token_list);
-        return ast_variable_node_add(token);
-    }
-
-    if (0 == token_compare(*token_list, VAR))
-    {
-        token_list = token_list_step(token_list);
-        if (0 != token_compare(*token_list, STRING))
-        {
-            DEBUG;
-            return NULL;
-        }
-        token = token_list_pop(token_list);
-        node = ast_variable_node_add(token);
-
-        if (0 != token_compare(*token_list, VARTYPE))
-        {
-            DEBUG;
-            return NULL;
-        }
-        token_list = token_list_step(token_list);
-    }
-    
-    return node;
-}
-
 struct node *parser_parse_factor(struct token **token_list)
 {
     /* factor : [NEWLINE | SEMICOLON] (PLUS | MINUS | STRING) factor (NUMBER | (LPAREN expr RPAREN)) */
@@ -81,7 +35,8 @@ struct node *parser_parse_factor(struct token **token_list)
 
     if (0 == token_compare(*token_list, STRING))
     {
-        return parser_parse_variable(token_list);
+        token = token_list_pop(token_list);
+        return ast_variable_node_add(token);
     }
  
     if (0 == token_compare(*token_list, LPAREN))
@@ -99,9 +54,11 @@ struct node *parser_parse_factor(struct token **token_list)
             return ast_destroy(node);
         }
         token_list = token_list_step(token_list);
+
+        return node;
     }
     
-    return node; 
+    return NULL; 
 }
 
 struct node *parser_parse_term(struct token **token_list)
@@ -113,6 +70,8 @@ struct node *parser_parse_term(struct token **token_list)
     node = parser_parse_factor(token_list);
     if (NULL == node)
     {
+        DEBUG;
+        token_list_print(*token_list);
         return NULL;
     }
 
@@ -122,6 +81,11 @@ struct node *parser_parse_term(struct token **token_list)
         {
             token = token_list_pop(token_list);
             node = ast_binary_node_add(node, token, parser_parse_factor(token_list));
+            if (NULL == node)
+            {
+                DEBUG;
+                return NULL;
+            }
             continue;
         }
         break;
@@ -148,6 +112,11 @@ struct node *parser_parse_expression(struct token **token_list)
         {
             token = token_list_pop(token_list);
             node = ast_binary_node_add(node, token, parser_parse_term(token_list));
+            if (NULL == node)
+            {
+                DEBUG;
+                return NULL;
+            }
             continue;
         }
         break; 
@@ -156,43 +125,77 @@ struct node *parser_parse_expression(struct token **token_list)
     return node;
 }
 
-struct node *parser_parse_assignment(struct token **token_list)
+struct node *parser_parse_assignment_or_declaration(struct token **token_list)
 {
-    /* assignment : (variable EQUALS expression) |
-                    (variable ASSIGN expression) | */ 
+    /* declaration : (VAR STRING VARTYPE EQUALS expression) |
+                    (STRING ASSIGN expression) */
+    /* assignment  : (STRING EQUALS expression) */ 
+
     struct node *node;
-    struct token *token;
+    struct token *name;
 
-    node = parser_parse_variable(token_list);
-    if (NULL == node)
+    if (0 == token_compare(*token_list, VAR))
     {
-        return NULL;
-    }
-
-    if (0 == token_list_compare_any(token_list, 2, EQUALS, ASSIGN))
-    {
-        token = token_list_pop(token_list);
-        node = ast_assignment_node_add(node, token, parser_parse_expression(token_list));
+        token_list = token_list_step(token_list);
+        if (0 != token_compare(*token_list, STRING))
+        {
+            DEBUG;
+            return NULL;
+        }
+        name = token_list_pop(token_list);
+        node = ast_variable_node_add(name);
         if (NULL == node)
+        {
+            DEBUG;
+            return NULL;
+        }
+
+        if (0 != token_compare(*token_list, VARTYPE))
         {
             DEBUG;
             return ast_destroy(node);
         }
-        return node;
+        token_list = token_list_step(token_list);
+        if (0 != token_compare(*token_list, EQUALS))
+        {
+            DEBUG;
+            return ast_destroy(node);
+        }
+        token_list = token_list_step(token_list);
+        return ast_declaration_node_add(node, name, parser_parse_expression(token_list));
+    }
+
+    if (0 == token_compare(*token_list, STRING))
+    {
+        name = token_list_pop(token_list);
+        node = ast_variable_node_add(name);
+        if (0 == token_compare(*token_list, ASSIGN))
+        {
+            token_list = token_list_step(token_list);
+            return ast_declaration_node_add(node, name, parser_parse_expression(token_list));
+        }
+        if (0 == token_compare(*token_list, EQUALS))
+        {
+            token_list = token_list_step(token_list);
+            return ast_assignment_node_add(node, name, parser_parse_expression(token_list));     
+        }
+        DEBUG;
+        return NULL;       
     }
 
     return NULL;
 }   
 
-struct node *parser_parse_assignment_list(struct token **token_list)
+struct node *parser_parse_assignment_or_declaration_list(struct token **token_list)
 {
     /* assignment list : assignment | (assignment (NEWLINE | SEMICOLON) assignment_list) */
+    /* declaration list : declaration | (declaration (NEWLINE | SEMICOLON) declaration_list) */
     struct node *node;
 
-    node = parser_parse_assignment(token_list);
+    node = parser_parse_assignment_or_declaration(token_list);
     if (NULL == node)
     {
-        return ast_destroy(node);
+        return NULL;
     }
 
     while (1)
@@ -200,12 +203,10 @@ struct node *parser_parse_assignment_list(struct token **token_list)
         if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
         {
             token_list = token_list_step(token_list);
-            if (0 != ast_node_append(node, parser_parse_assignment(token_list)))
+            if (0 == ast_node_append(node, parser_parse_assignment_or_declaration(token_list)))
             {
-                DEBUG;
-                return ast_destroy(node);
-            }
-            continue;
+                continue;
+            }         
         }
         break;
     }
@@ -213,9 +214,14 @@ struct node *parser_parse_assignment_list(struct token **token_list)
     return node;
 }
 
+// struct token *parser_parse_function_arguments(struct token **token_list)
+// {
+
+// }
+
 struct token *parser_parse_function_declaration(struct token **token_list)
 {
-    /* function declaration : FUNC STRING LPAREN [arguments] RPAREN 
+    /* function declaration : FUNC STRING LPAREN [arguments] [VARTYPE] RPAREN 
         [NEWLINE | SEMICOLON] [RETURN (STRING | INT | FLOAT )] [NEWLINE | SEMICOLON] LBRACE */
     struct token *name;
 
@@ -232,6 +238,11 @@ struct token *parser_parse_function_declaration(struct token **token_list)
         token_list = token_list_step(token_list);
     }
 
+    if (0 == token_compare(*token_list, VARTYPE))
+    {
+        token_list = token_list_step(token_list); 
+    }
+
     if (0 != token_compare(*token_list, LBRACE))
     {
         DEBUG;
@@ -244,8 +255,9 @@ struct token *parser_parse_function_declaration(struct token **token_list)
 
 struct node *parser_parse_function(struct token **token_list)
 {
-    /*  function : function declaration [NEWLINE | SEMICOLON] assignment_list [NEWLINE | SEMICOLON] RBRACE */
-    struct node *node;
+    /*  function : function declaration [NEWLINE | SEMICOLON] assignment_list
+     [NEWLINE | SEMICOLON] [RETURN] [NEWLINE | SEMICOLON] RBRACE */
+    struct node *node, *return_node;
     struct token *name;
 
     name = parser_parse_function_declaration(token_list);
@@ -259,11 +271,11 @@ struct node *parser_parse_function(struct token **token_list)
         if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
         {
             token_list = token_list_step(token_list);
-            node = ast_function_node_add(name, parser_parse_assignment_list(token_list));
+            node = ast_function_node_add(name, parser_parse_assignment_or_declaration_list(token_list));
             if (NULL == node)
             {
                 DEBUG;
-                return ast_destroy(node);
+                return NULL;
             }
             continue;
         }
@@ -272,7 +284,24 @@ struct node *parser_parse_function(struct token **token_list)
 
     if (0 == token_compare(*token_list, RETURN))
     {
-        //TODO parse return
+        token_list = token_list_step(token_list);
+        return_node = parser_parse_factor(token_list);
+        if (NULL == return_node)
+        {
+            DEBUG;
+            return ast_destroy(node);
+        }
+        if ( 0 != ast_function_node_add_return(node, return_node))
+        {
+            DEBUG;
+            return ast_destroy(return_node);
+            return ast_destroy(node);
+        }
+    }
+
+    while (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
+    {
+        token_list = token_list_step(token_list);
     }
 
     if (0 != token_compare(*token_list, RBRACE))
@@ -293,7 +322,7 @@ struct node *parser_parse_function_list(struct token **token_list)
     node = parser_parse_function(token_list);
     if (NULL == node)
     {
-        return ast_destroy(node);
+        return NULL;
     }
 
     while (1)
@@ -301,18 +330,17 @@ struct node *parser_parse_function_list(struct token **token_list)
         if (0 == token_list_compare_any(token_list, 2, NEWLINE_TYPE, SEMICOLON))
         {
             token_list = token_list_step(token_list);
-            if (0 != ast_node_append(node, parser_parse_function(token_list)))
+            if (0 == ast_node_append(node, parser_parse_function(token_list)))
             {
-                DEBUG;
-                return ast_destroy(node);
+                continue;
             }
-            continue;
         }
         break;
     }
 
     return node;
 }
+
 struct node *parser_parse_program(struct token **token_list)
 { //TODO: remove options that dont involve functions
     /* program : function_list | assignment_list | expression */
@@ -325,7 +353,7 @@ struct node *parser_parse_program(struct token **token_list)
         return node;
     }
 
-    node = parser_parse_assignment_list(token_list);
+    node = parser_parse_assignment_or_declaration_list(token_list);
     if (NULL != node)
     {
         return node;

@@ -249,7 +249,7 @@ struct token *lexer_lex(char *input_str)
             continue;
         } 
 
-        if (0 != token_list_append(type, &input_str[window.left], window.right - window.left + 1, &token_list))
+        if (0 != token_list_create_and_append(type, &input_str[window.left], window.right - window.left + 1, &token_list))
         {
             DEBUG;
             return token_list_destroy(token_list);
