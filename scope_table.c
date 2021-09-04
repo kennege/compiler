@@ -146,9 +146,14 @@ void scope_revert(struct scope **scope)
     scope_set_current(*scope, (*scope)->next->name);
 }
 
+int scope_variable_exists(struct scope *scope, struct token *contents)
+{
+    return token_exists(contents, scope_get_current(&scope)->contents);
+}
+
 int scope_insert(struct scope *scope, struct token *contents)
 {
-    if (!token_exists(contents, scope_get_current(&scope)->contents))
+    if (!scope_variable_exists(scope, contents))
     {
         if (0 != token_list_append(contents, &(scope_get_current(&scope)->contents)))
         {

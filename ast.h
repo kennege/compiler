@@ -7,6 +7,7 @@ struct node
     struct token *op;
     struct node *right;
 
+    struct node *arguments;
     char *type;
     int set;
 
@@ -31,11 +32,13 @@ struct node *ast_variable_node_add(struct token *op);
 struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right);
 struct node *ast_assignment_node_add(struct node *left, struct token *op, struct node *right);
 struct node *ast_declaration_node_add(struct node *left, struct token *op, struct node *right);
-struct node *ast_function_node_add(struct token *name, struct node *assignment_list);
-int ast_function_node_add_return(struct node *function_node, struct node *return_value);
+struct node *ast_function_node_add(struct token *name);
+int ast_function_node_add_arguments(struct node *node, struct node *arguments);
+int ast_function_node_add_body(struct node *node, struct node *assignment_list);
+int ast_function_node_add_return(struct node *node, struct node *return_value);
 struct node *ast_program_node_add(struct node *function_list);
 
-int ast_node_append(struct node *list_head, struct node *new);
+int ast_node_append(struct node **list_head, struct node *new);
 const struct node *ast_node_index(const struct node *list_head, int index);
 size_t ast_num_nodes(const struct node *list_head);
 

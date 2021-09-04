@@ -87,6 +87,20 @@ struct stack *stack_destroy_all(struct stack *stack)
     return NULL;
 }
 
+struct token *stack_extract(const struct stack *stack, const struct token *var_name)
+{
+    while (NULL != stack)
+    {
+        if (0 == strcmp(token_get_value(stack->var_name), token_get_value(var_name)))
+        {
+            return stack->var;
+        }
+        stack = stack->next;
+    }   
+
+    return NULL;
+}
+
 static int stack_insert(struct stack *stack, const struct token *var_name, struct token *var)
 {
     while (NULL != stack)
@@ -104,20 +118,6 @@ static int stack_insert(struct stack *stack, const struct token *var_name, struc
     }
 
     return -1;
-}
-
-struct token *stack_extract(const struct stack *stack, const struct token *var_name)
-{
-    while (NULL != stack)
-    {
-        if (0 == strcmp(token_get_value(stack->var_name), token_get_value(var_name)))
-        {
-            return stack->var;
-        }
-        stack = stack->next;
-    }   
-
-    return NULL;
 }
 
 int stack_append(struct stack **list_head, const struct token *var_name, struct token *var)

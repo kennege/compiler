@@ -23,6 +23,11 @@ struct node *ast_destroy(struct node *ast)
         ast->right = ast_destroy(ast->right);
     }
 
+    if (NULL != ast->arguments)
+    {
+        ast->arguments = ast_destroy(ast->arguments);
+    }
+
     ast->set = 0;
     free(ast);
 
@@ -54,6 +59,13 @@ static struct node *ast_node_create()
     }
     memset(ast->right, 0, sizeof(*ast->right));
 
+    ast->arguments = malloc(sizeof(*ast->arguments));
+    if (NULL == ast->arguments)
+    {
+        return ast_destroy(ast);
+    }
+    memset(ast->arguments, 0, sizeof(*ast->arguments));
+
     ast->set = 0;
     ast->type = NULL;
     ast->next = NULL;
@@ -77,7 +89,6 @@ struct node *ast_binary_node_add(struct node *left, struct token *op, struct nod
     }
     node->left = left;
     node->op = op;
-    node->right = NULL;
     node->set = 1;
     node->type = BINARY;
     node->right = right;
@@ -101,7 +112,6 @@ struct node *ast_unary_node_add(struct token *op, struct node *left)
     }
     node->left = left;
     node->op = op;
-    node->right = NULL;
     node->set = 1;
     node->type = UNARY;
 
@@ -122,9 +132,7 @@ struct node *ast_value_node_set(struct token *op)
     {
         return NULL;
     }
-    node->left = NULL;
     node->op = op;
-    node->right = NULL;
     node->set = 1;
     node->type = VALUE;
 
@@ -145,9 +153,7 @@ struct node *ast_variable_node_add(struct token *op)
     {
         return NULL;
     }
-    node->left = NULL;
     node->op = op;
-    node->right = NULL;
     node->type = VARIABLE;
     node->set = 1;
 
@@ -200,11 +206,11 @@ struct node *ast_declaration_node_add(struct node *left, struct token *op, struc
     return node;
 }
 
-struct node *ast_function_node_add(struct token *name, struct node *assignment_list)
+struct node *ast_function_node_add(struct token *name)
 {
     struct node *node;
 
-    if (NULL == name || NULL == assignment_list)
+    if (NULL == name)
     {
         return NULL;
     }
@@ -214,23 +220,48 @@ struct node *ast_function_node_add(struct token *name, struct node *assignment_l
     {
         return NULL;
     }
-    node->left = assignment_list;
     node->op = name;
+    node->left = NULL;
     node->right = NULL;
+    node->arguments = NULL;
     node->type = FUNCTION;
     node->set = 1;
 
     return node;
 }
 
-int ast_function_node_add_return(struct node *function_node, struct node *return_value)
+int ast_function_node_add_arguments(struct node *node, struct node *arguments)
 {
-    if (NULL == return_value || NULL == function_node)
+    if (NULL == node || NULL == arguments)
     {
         return -1;
     }
 
-    function_node->right = return_value;
+    node->arguments = arguments;
+
+    return 0;
+}
+
+int ast_function_node_add_body(struct node *node, struct node *assignment_list)
+{
+    if (NULL == node || NULL == assignment_list)
+    {
+        return -1;
+    }
+
+    node->left = assignment_list;
+
+    return 0;
+}
+
+int ast_function_node_add_return(struct node *node, struct node *return_value)
+{
+    if (NULL == return_value || NULL == node)
+    {
+        return -1;
+    }
+
+    node->right = return_value;
 
     return 0;
 }
@@ -250,15 +281,13 @@ struct node *ast_program_node_add(struct node *function_list)
         return NULL;
     }
     node->left = function_list;
-    node->op = NULL;
-    node->right = NULL;
     node->type = PROGRAM;
     node->set = 1;
 
     return node;
 }
 
-int ast_node_append(struct node *list_head, struct node *new)
+int ast_node_append(struct node **list_head, struct node *new)
 {   
     struct node *last;
 
@@ -267,19 +296,20 @@ int ast_node_append(struct node *list_head, struct node *new)
         return -1;
     }
 
-    if (NULL == list_head)
+    if (NULL == *list_head)
     {
-        list_head = new;
+        *list_head = new;
         return 0;
     }
     
-    last = list_head;
+    last = *list_head;
     while (last->next != NULL)
     {
         last = last->next;
     }
 
     last->next = new;
+    new->next = NULL;
 
     return 0;
 }
@@ -296,16 +326,12 @@ const struct node *ast_node_index(const struct node *list_head, int index)
 
 size_t ast_num_nodes(const struct node *list_head)
 {
-    size_t length;
-
-    length = 0;
-    while (NULL != list_head)
+    if (NULL == list_head)
     {
-        length++;
-        list_head = list_head->next;
+        return 0;
     }
 
-    return length;
+    return 1 + ast_num_nodes(list_head->next);
 }
 
 void ast_print(const struct node *ast, int level, char *location)

@@ -108,26 +108,26 @@ static struct token *translator_visit_function_node(const struct node *node, str
     struct token *return_token;
     size_t n_nodes;
 
-    n_nodes = ast_num_nodes(node);
     return_token = NULL;
+    n_nodes = ast_num_nodes(node);
     for (int i=0; i<n_nodes; i++)
     {
         next_node = ast_node_index(node, i);
-        if (0 != scope_add(&(memory->scope), token_get_value(next_node->op))) 
-        {
-            DEBUG;
-            return NULL;
-        }            
         if (0 != stack_append(&(memory->stack), next_node->op, translator_visit(next_node->left, memory)))
         {
             DEBUG;
             return NULL;
         }
+        if (0 != scope_add(&(memory->scope), token_get_value(next_node->op))) 
+        {
+            DEBUG;
+            return NULL;
+        }   
         
         scope_revert(&(memory->scope));
         
         if (NULL != next_node->right)
-        {
+        {            
             return_token = token_cpy(translator_visit(next_node->right, memory));
             if (NULL == return_token)
             {
@@ -140,38 +140,53 @@ static struct token *translator_visit_function_node(const struct node *node, str
                 return NULL;
             }   
         }
-
         if (0 != stack_destroy_local(&(memory->stack), next_node->op))
         {
             DEBUG;
             return NULL;
         }
     }
+
+    //TODO visit function return node
     
     return return_token;
 }
 
-static struct token *translator_visit_declaration_or_assignment_node(const struct node *node, struct memory *memory)
+static struct token *translator_visit_statement_node(const struct node *node, struct memory *memory)
 {
     const struct node *next_node;
     struct token *value;
-    size_t n_assignment_nodes;
+    size_t n_nodes;
 
-    n_assignment_nodes = ast_num_nodes(node);
+    n_nodes = ast_num_nodes(node);
     value = NULL;
-    for (int i=0; i<n_assignment_nodes; i++)
+    for (int i=0; i<n_nodes; i++)
     {
         next_node = ast_node_index(node, i);
+        ast_print(next_node, 0, "state");
         value = translator_visit(next_node->right, memory);
-        if (0 != stack_append(&(memory->stack), next_node->left->op, value)) 
+        if (0 == strcmp(next_node->type, DECLARATION))
         {
-            DEBUG;
-            return NULL;
+            if (scope_variable_exists(memory->scope, next_node->left->op))
+            {
+                DEBUG;
+                fprintf(stderr, "ERROR: variable %s defined more than once\n", token_get_display(next_node->left->op));
+                return token_destroy(value);
+            }
+
+            if (0 != scope_insert(memory->scope, token_cpy(next_node->left->op)))
+            {
+                DEBUG;
+                return token_destroy(value);
+            }
         }
-        if (0 != scope_insert(memory->scope, token_cpy(next_node->left->op)))
+        if (scope_variable_exists(memory->scope, next_node->left->op))
         {
-            DEBUG;
-            return NULL;
+            if (0 != stack_append(&(memory->stack), next_node->left->op, value)) 
+            {
+                DEBUG;
+                return token_destroy(value);
+            }
         }
     }
     
@@ -185,6 +200,7 @@ static struct token *translator_visit_variable_node(const struct node *node, str
     output = stack_extract(memory->stack, node->op);
     if (NULL == output)
     {
+        DEBUG;
         fprintf(stderr, "ERROR: variable not found: %s\n", token_get_display(node->op));
         return NULL;
     }
@@ -263,8 +279,8 @@ struct token *translator_visit(const struct node *node, struct memory *memory)
         { .node_type = VALUE, .fn = translator_visit_value_node },
         { .node_type = VARIABLE, .fn = translator_visit_variable_node },
         { .node_type = BINARY, .fn = translator_visit_binary_node },
-        { .node_type = ASSIGNMENT, .fn = translator_visit_declaration_or_assignment_node },
-        { .node_type = DECLARATION, .fn = translator_visit_declaration_or_assignment_node },
+        { .node_type = ASSIGNMENT, .fn = translator_visit_statement_node },
+        { .node_type = DECLARATION, .fn = translator_visit_statement_node },
         { .node_type = FUNCTION, .fn = translator_visit_function_node },
         { .node_type = PROGRAM, .fn = translator_visit_program_node },
     };

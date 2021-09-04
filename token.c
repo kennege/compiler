@@ -163,17 +163,17 @@ struct token **token_list_step(struct token **token_list)
     }
 
     *token_list = (*token_list)->next;
-
+    
     return token_list;
 }
 
 struct token *token_list_index(struct token *token_list, int index)
 {
-    for (int i=0; i<index; i++)
-    {
-        token_list_step(&token_list);
-    }
-
+        for (int i=0; i<index; i++)
+        {
+            token_list = token_list->next;
+        }
+    
     return token_list;
 }
 
@@ -185,6 +185,8 @@ struct token *token_list_pop(struct token **token_list)
     {
        token_list_step(token_list);
     }
+
+    tmp->next = NULL;
 
     return tmp;
 }
@@ -306,12 +308,17 @@ char *token_get_type(const struct token *token)
     return token->type;
 }
 
+void token_print(const struct token *token)
+{
+    printf("%s\n", token->display);
+}
+
 void token_list_print(const struct token *token)
 {
     printf("\nTOKEN LIST: \n");
     while (NULL != token)
     {
-        printf("%s\n", token->display);
+        token_print(token);
         token = token->next;
     }
     printf("\n");

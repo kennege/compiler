@@ -30,6 +30,7 @@ struct token *lexer_lex(char *input_str);
 #define WHITESPACE " "
 #define DOT "."
 #define SEMICOLON ";"
+#define COMMA ","
 
 /* Special Characters */
 #define EOFILE "\0"

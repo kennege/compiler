@@ -41,6 +41,7 @@ static const struct {
     { MINUS },
     { DOT },
     { PLUS },
+    { COMMA },
     { LBRACE },
     { RBRACE },
     { EQUALS },
@@ -206,7 +207,6 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
 
     for (int i=0; i<LENGTH(token_types); i++)
     {
- 
         type = token_types[i].fn(input_str, window);
         if (NULL != type)
         {

@@ -22,6 +22,7 @@ static const struct {
     // { .input = "\nb+2", .expected_output = NULL },
     // { .input = "func main() { \n d = 2 +  4 \n b= d+3 \n}", .expected_output = NULL },
     // { .input = "func main() int { \n d := 2 +  4 \n b:= d+3 \n return b \n}", .expected_output = "9" },
+    // { .input = "func main() int { \n a := 2\nd := 2 +  4 \n d:= d+3 \n return d \n}", .expected_output = NULL },
     { .input = "func main() int { \n a := 2\nd := 2 +  4 \n d= d+3 \n return d \n}", .expected_output = "9" },
 };
 
@@ -36,8 +37,18 @@ int unit_test(struct token *(interpreter(char *input_str)))
         output = token_get_value(interpreter(tests[i].input));
 
         if ((NULL == output && NULL != tests[i].expected_output) ||
-            (NULL != output && NULL == tests[i].expected_output) ||
-            (0 != strcmp(output, tests[i].expected_output)))
+            (NULL != output && NULL == tests[i].expected_output))
+        {
+            fprintf(stderr, "FAILED. Test: %d. Expected: %s, Actual: %s\n", 
+                i, tests[i].expected_output, output);
+            result = -1;        
+        }
+        else if (NULL == output && NULL == tests[i].expected_output)
+        {
+            fprintf(stderr, "PASSED. Test: %d. Expected: %s, Actual: %s\n", 
+                i, tests[i].expected_output, output);              
+        }
+        else if (0 != strcmp(output, tests[i].expected_output))
         {
             fprintf(stderr, "FAILED. Test: %d. Expected: %s, Actual: %s\n", 
                 i, tests[i].expected_output, output);

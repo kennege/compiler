@@ -9,6 +9,7 @@ void scope_set_current(struct scope *scope, char *name);
 int scope_previous_declaration(struct scope *scope, const struct token *contents);
 int scope_insert(struct scope *scope, struct token *contents);
 void scope_revert(struct scope **scope);
+int scope_variable_exists(struct scope *scope, struct token *contents);
 void scope_print(struct scope *scope);
 
 #endif // _SCOPE_TABLE_H_
