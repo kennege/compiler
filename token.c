@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "token.h"
 
-#define DISPLAY_BUFF 32
+#define DISPLAY_BUFF (32)
 
 struct token 
 {
@@ -52,6 +52,12 @@ struct token *token_create(const char *type, const char *value, int value_len)
 {
     struct token *token;
 
+    if (NULL == type || NULL == value)
+    {
+        DEBUG;
+        return NULL;
+    }
+
     token = malloc(sizeof(*token));
     if (NULL == token)
     {
@@ -74,7 +80,7 @@ struct token *token_create(const char *type, const char *value, int value_len)
         return token_destroy(token);
     }
 
-    token->type = string_cpy(type, string_len(type));
+    token->type = string_cpy(type, strlen(type));
     if (NULL == token->type)
     {
         DEBUG;
@@ -122,7 +128,7 @@ int token_list_append(struct token *new, struct token **list_head)
     }
     
     last = *list_head;
-    while (last->next != NULL)
+    while (NULL != last->next)
     {
         last = last->next;
     }
@@ -137,12 +143,22 @@ int token_list_create_and_append(const char *type, const char *value, int length
     struct token *new;
 
     new = token_create(type, value, length);
+    if (NULL == new)
+    {
+        return -1;
+    }
 
     return token_list_append(new, list_head);
 }
 
 int token_exists(struct token *token, struct token *list)
 {
+    if (NULL == token)
+    {
+        DEBUG;
+        return -1;
+    }
+
     while (NULL != list)
     {
         if (0 == strcmp(token->value, list->value))
@@ -155,24 +171,17 @@ int token_exists(struct token *token, struct token *list)
     return 0;
 }
 
-struct token **token_list_step(struct token **token_list)
+void token_list_step(struct token **token_list)
 {
-    if (NULL == *token_list)
-    {
-        return NULL;
-    }
-
-    *token_list = (*token_list)->next;
-    
-    return token_list;
+    *token_list = (*token_list)->next;    
 }
 
-struct token *token_list_index(struct token *token_list, int index)
+const struct token *token_list_index(const struct token *token_list, int index)
 {
-        for (int i=0; i<index; i++)
-        {
-            token_list = token_list->next;
-        }
+    for (int i=0; i<index; i++)
+    {
+        token_list = token_list->next;
+    }
     
     return token_list;
 }
@@ -193,7 +202,7 @@ struct token *token_list_pop(struct token **token_list)
 
 int token_compare(const struct token *token, const char *type)
 {
-    if (NULL == token)
+    if (NULL == token || NULL == type)
     {
         return -1;
     }
@@ -213,6 +222,7 @@ int token_list_compare_all(struct token **token_list, int peak_length, ...)
 
     if (NULL == token_list)
     {
+        DEBUG;
         return -1;
     }
 
@@ -237,6 +247,7 @@ int token_list_compare_any(struct token **token_list, int n_options, ...)
 
     if (NULL == token_list)
     {
+        DEBUG;
         return -1;
     }
 
@@ -278,6 +289,28 @@ struct token *token_cpy(const struct token *token)
     return new;
 }
 
+struct token *token_list_cpy(const struct token *token_list)
+{
+    struct token *new;
+
+    if (NULL == token_list)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    new = token_cpy(token_list);
+    if (NULL == new)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    new->next = token_list_cpy(token_list->next);
+
+    return new;
+}
+
 char *token_get_display(const struct token *token)
 {
     if (NULL == token)
@@ -292,6 +325,7 @@ char *token_get_value(const struct token *token)
 {
     if (NULL == token)
     {
+        DEBUG;
         return NULL;
     }
     
@@ -302,6 +336,7 @@ char *token_get_type(const struct token *token)
 {
     if (NULL == token)
     {
+        DEBUG;
         return NULL;
     }
     

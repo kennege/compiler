@@ -14,11 +14,12 @@ int token_compare(const struct token *token, const char *type);
 int token_list_compare_all(struct token **token_list, int peak_length, ...);
 int token_list_compare_any(struct token **token_list, int peak_length, ...);
 struct token *token_cpy(const struct token *token);
+struct token *token_list_cpy(const struct token *token_list);
 int token_exists(struct token *token, struct token *list);
 
 struct token *token_list_pop(struct token **token_list);
-struct token *token_list_index(struct token *token_list, int index);
-struct token **token_list_step(struct token **token_list);
+const struct token *token_list_index(const struct token *token_list, int index);
+void token_list_step(struct token **token_list);
 int token_list_append(struct token *new, struct token **list_head);
 int token_list_create_and_append(const char *type, const char *value, int length, struct token **list_head);
 struct token *token_list_destroy(struct token *token_list);

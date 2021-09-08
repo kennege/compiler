@@ -4,12 +4,22 @@
 struct token *lexer_lex(char *input_str);
 
 /* Reserved Keywords */
+#define DOUBLE_QUOTE "\""
 #define COMMENT "//"
 #define ASSIGN ":="
 #define CONST "const"
 #define FUNC "func"
+#define MAIN "main"
 #define VAR "var"
+#define AND "&&"
+#define OR "||"
+#define IF "if"
+#define FOR "for"
+#define WHILE "while"
 #define RETURN "return"
+#define EQUIVALENT "=="
+#define LESS_EQUAL "<="
+#define GREATER_EQUAL ">="
 
 /* Variable Types */
 #define INT "int"
@@ -27,10 +37,13 @@ struct token *lexer_lex(char *input_str);
 #define LBRACE "{"
 #define RBRACE "}"
 #define EQUALS "="
-#define WHITESPACE " "
-#define DOT "."
-#define SEMICOLON ";"
 #define COMMA ","
+#define DOT "."
+#define NOT "!"
+#define SEMICOLON ";"
+#define WHITESPACE " "
+#define LESS_THAN "<"
+#define GREATER_THAN ">"
 
 /* Special Characters */
 #define EOFILE "\0"
@@ -38,6 +51,7 @@ struct token *lexer_lex(char *input_str);
 
 /* Descriptors */
 #define VARTYPE "__vartype__"
+#define VARNAME "__varname__"
 #define NEWLINE_TYPE "__newline__"
 #define EOFILE_TYPE "__eofile__"
 
@@ -45,6 +59,6 @@ struct token *lexer_lex(char *input_str);
 #define NUMBERS "0123456789"
 
 /* Characters */
-#define CHARACTERS "abcdefghijklmnopqrstuvwxyz"
+#define CHARACTERS "abcdefghijklmnopqrstuvwxyz_"
 
 #endif // _LEXER_H_

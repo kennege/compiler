@@ -16,10 +16,17 @@ static const struct {
     char *keyword;
 } reserved_keywords[] = {
     { RETURN },
-    { ASSIGN },
     { CONST },
     { FUNC },
     { VAR },
+    { IF },
+    { OR },
+    { AND },
+    { FOR },
+    { WHILE },
+    { ASSIGN },
+    { LESS_EQUAL },
+    { GREATER_EQUAL },
 };
 
 static const struct {
@@ -34,19 +41,24 @@ static const struct {
 static const struct {
     char *character;
 } reserved_characters[] = {
+    { DOUBLE_QUOTE },
     { WHITESPACE },
     { DIVIDE },
     { LPAREN },
     { RPAREN },
     { MINUS },
-    { DOT },
-    { PLUS },
     { COMMA },
+    { DOT },
+    { NOT },
+    { PLUS },
     { LBRACE },
     { RBRACE },
     { EQUALS },
     { MULTIPLY },
     { SEMICOLON },
+    { EQUIVALENT },
+    { LESS_THAN },
+    { GREATER_THAN },
 };
 
 static int lexer_keyword_match(const char *input_str, const char *str, struct window *window)
@@ -123,6 +135,7 @@ static char *lexer_is_variable_type(const char *input_str, struct window *window
 
 static char *lexer_return_float_or_int(const char *input_str, struct window *window)
 {
+    // TODO: if previous 2 tokens contain vartype, set to vartype
     for (int i = window->left; i < window->right; i++)
     {
         if (input_str[i] == DOT[0])
@@ -157,8 +170,9 @@ static char *lexer_is_number(const char *input_str, struct window *window)
 static char *lexer_is_string(const char *input_str, struct window *window)
 {
     int n_chars;
-
-    n_chars = strlen(CHARACTERS);
+    // TODO: start and end with double quotes
+    //TODO: add separate function for varname which doesnt require double quotes
+    n_chars = strlen(CHARACTERS);   
     for (int i=0; i<n_chars; i++)
     {
         if (input_str[window->right] == CHARACTERS[i])
@@ -202,7 +216,7 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
         { lexer_is_reserved_keyword },
         { lexer_is_variable_type },
         { lexer_is_number },
-        { lexer_is_string },
+        { lexer_is_string }, // must be last to avoid confusion with reserved keywords
     };
 
     for (int i=0; i<LENGTH(token_types); i++)

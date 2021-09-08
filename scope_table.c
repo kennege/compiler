@@ -47,6 +47,12 @@ struct scope *scope_create(char *name)
 {
     struct scope *new;
 
+    if (NULL == name)
+    {
+        DEBUG;
+        return NULL;
+    }
+
     new = malloc(sizeof(*new));
     if (NULL == new)
     {
@@ -71,24 +77,33 @@ struct scope *scope_create(char *name)
 
 void scope_set_current(struct scope *scope, char *name)
 {
-    while (NULL != scope)
+    if (NULL != name)
     {
-        if (0 == strcmp(scope->name, name))
+        while (NULL != scope)
         {
-            scope->current = 1;
+            if (0 == strcmp(scope->name, name))
+            {
+                scope->current = 1;
+            }
+            else
+            {
+                scope->current = 0;
+            }
+            
+            scope = scope->next;
         }
-        else
-        {
-            scope->current = 0;
-        }
-        
-        scope = scope->next;
     }
 }
 
 struct scope *scope_get_current(struct scope **scope)
 {
     struct scope *tmp;
+
+    if (NULL == *scope)
+    {
+        DEBUG;
+        return NULL;
+    }
 
     tmp = *scope;
     while (NULL != tmp)
@@ -100,6 +115,7 @@ struct scope *scope_get_current(struct scope **scope)
         tmp = tmp->next;
     }
 
+    DEBUG;
     return NULL;
 }
 
@@ -153,10 +169,17 @@ int scope_variable_exists(struct scope *scope, struct token *contents)
 
 int scope_insert(struct scope *scope, struct token *contents)
 {
+    if (NULL == contents)
+    {
+        DEBUG;
+        return -1;
+    }
+
     if (!scope_variable_exists(scope, contents))
     {
         if (0 != token_list_append(contents, &(scope_get_current(&scope)->contents)))
         {
+            DEBUG;
             return -1;
         }
     }

@@ -13,13 +13,39 @@
 #include "stack.h"
 #include "translator.h"
 
+#define SEMANTIC_ERROR (0)
+
 struct memory
 {
     struct stack *stack;
     struct scope *scope;
+    int main_visited;
 };
 
 struct token *translator_visit(const struct node *node, struct memory *memory);
+
+char *translator_get_types(const struct token *left, const struct token *right)
+{
+    if (0 != strcmp(token_get_type(left), token_get_type(right)))
+    {
+        if ((0 == strcmp(token_get_type(left), FLOAT) && 0 == strcmp(token_get_type(right), INT)) ||
+        (0 == strcmp(token_get_type(right), FLOAT) && 0 == strcmp(token_get_type(left), INT)))
+        {  
+            return FLOAT;
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: operation between different types.\n");
+            return NULL;
+        }
+    }
+    else
+    {
+        return token_get_type(left);
+    }
+
+    return NULL;
+}
 
 static struct token *translator_operate_unary(const struct token *token, const char *op)
 {
@@ -37,6 +63,7 @@ static struct token *translator_operate_unary(const struct token *token, const c
     type = token_get_type(token);
     if (NULL == type)
     {
+        DEBUG;
         return NULL;
     }
     
@@ -72,12 +99,12 @@ static struct token *translator_operate_binary(const struct token *left, const s
         { .type = STRING, .operations = string_binary_operations },
     };
 
-    if (0 != strcmp(token_get_type(left), token_get_type(right)))
+    type = translator_get_types(left, right);
+    if (NULL == type)
     {
-        fprintf(stderr, "ERROR: operation between different types.\n");
+        DEBUG;
         return NULL;
     }
-    type = token_get_type(left);
     
     for (int i=0; i<LENGTH(op_types); i++)
     {
@@ -102,8 +129,31 @@ static struct token *translator_visit_program_node(const struct node *node, stru
     return translator_visit(node->left, memory);
 }
 
+static struct token *translator_visit_function_argument_node(const struct node *node, struct memory *memory)
+{
+    if (NULL == node)
+    {
+        return NULL;
+    }
+
+    if (0 != stack_append(&(memory->stack), node->op, NULL))
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    if (0 != stack_function_arg_append(memory->stack, node->op))
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return translator_visit(node->next, memory);
+}
+
 static struct token *translator_visit_function_node(const struct node *node, struct memory *memory)
 {
+    /* if name == main: traverse all function nodes, else: just add function name to memory */
     const struct node *next_node;
     struct token *return_token;
     size_t n_nodes;
@@ -113,43 +163,83 @@ static struct token *translator_visit_function_node(const struct node *node, str
     for (int i=0; i<n_nodes; i++)
     {
         next_node = ast_node_index(node, i);
-        if (0 != stack_append(&(memory->stack), next_node->op, translator_visit(next_node->left, memory)))
+        if ((0 == strcmp(token_get_value(next_node->op), MAIN) && !memory->main_visited) ||
+            (0 != strcmp(token_get_value(next_node->op), MAIN) && memory->main_visited))
         {
-            DEBUG;
-            return NULL;
-        }
-        if (0 != scope_add(&(memory->scope), token_get_value(next_node->op))) 
-        {
-            DEBUG;
-            return NULL;
-        }   
-        
-        scope_revert(&(memory->scope));
-        
-        if (NULL != next_node->right)
-        {            
-            return_token = token_cpy(translator_visit(next_node->right, memory));
-            if (NULL == return_token)
-            {
-                DEBUG;
-                return NULL;
-            }
-            if (0 != scope_insert(memory->scope, token_cpy(next_node->op)))
+            memory->main_visited = 1;
+            if (0 != scope_add(&(memory->scope), token_get_value(next_node->op))) 
             {
                 DEBUG;
                 return NULL;
             }   
+            if (0 != stack_append(&(memory->stack), next_node->op, translator_visit(next_node->left, memory)))
+            {
+                DEBUG;
+                return NULL;
+            }
+            
+            scope_revert(&(memory->scope));
+            
+            if (NULL != next_node->right)
+            {         
+                return_token = token_cpy(translator_visit(next_node->right, memory));
+                if (NULL == return_token)
+                {
+                    DEBUG;
+                    return NULL;
+                }
+                if (0 != scope_insert(memory->scope, token_cpy(next_node->op)))
+                {
+                    DEBUG;
+                    return token_destroy(return_token);
+                } 
+            }
+
+            if (0 != stack_destroy_local(&(memory->stack), next_node->op))
+            {
+                DEBUG;
+                return token_destroy(return_token);
+            }
+        } 
+        else
+        {
+            if (0 != stack_function_declaration_append(&(memory->stack), next_node->op, next_node))
+            {
+                DEBUG;
+                return NULL;
+            }  
+            translator_visit(next_node->arguments, memory);
         }
-        if (0 != stack_destroy_local(&(memory->stack), next_node->op))
+    }
+    
+    return return_token;
+}
+
+static struct token *translator_visit_function_call_node(const struct node *node, struct memory *memory)
+{
+    size_t n_args;
+    const struct node *next_node;
+    const struct token *arg_name, *arg_val;
+
+    n_args = ast_num_nodes(node->left);
+    for (int i=0; i<n_args; i++)
+    {
+        next_node = ast_node_index(node->left, i);
+        arg_name = stack_get_function_arg(memory->stack, node->op, i);
+        arg_val = stack_extract(memory->stack, next_node->op);
+        if (NULL == arg_name || NULL == arg_val)
         {
             DEBUG;
             return NULL;
         }
+        if (0 != stack_append(&(memory->stack), arg_name, arg_val))
+        {
+            DEBUG;
+            return NULL;
+        }      
     }
 
-    //TODO visit function return node
-    
-    return return_token;
+    return translator_visit(stack_get_address(memory->stack, node->op), memory);
 }
 
 static struct token *translator_visit_statement_node(const struct node *node, struct memory *memory)
@@ -163,14 +253,13 @@ static struct token *translator_visit_statement_node(const struct node *node, st
     for (int i=0; i<n_nodes; i++)
     {
         next_node = ast_node_index(node, i);
-        ast_print(next_node, 0, "state");
         value = translator_visit(next_node->right, memory);
         if (0 == strcmp(next_node->type, DECLARATION))
         {
             if (scope_variable_exists(memory->scope, next_node->left->op))
             {
                 DEBUG;
-                fprintf(stderr, "ERROR: variable %s defined more than once\n", token_get_display(next_node->left->op));
+                fprintf(stderr, "ERROR: variable '%s' defined more than once\n", token_get_value(next_node->left->op));
                 return token_destroy(value);
             }
 
@@ -179,8 +268,14 @@ static struct token *translator_visit_statement_node(const struct node *node, st
                 DEBUG;
                 return token_destroy(value);
             }
+
+            if (0 != stack_append(&(memory->stack), next_node->left->op, value)) 
+            {
+                DEBUG;
+                return token_destroy(value);
+            }
         }
-        if (scope_variable_exists(memory->scope, next_node->left->op))
+        else if (scope_variable_exists(memory->scope, next_node->left->op))
         {
             if (0 != stack_append(&(memory->stack), next_node->left->op, value)) 
             {
@@ -188,6 +283,11 @@ static struct token *translator_visit_statement_node(const struct node *node, st
                 return token_destroy(value);
             }
         }
+        else
+        {
+            DEBUG;
+            return token_destroy(value);
+        }      
     }
     
     return value;
@@ -197,11 +297,11 @@ static struct token *translator_visit_variable_node(const struct node *node, str
 {
     struct token *output;
 
-    output = stack_extract(memory->stack, node->op);
+    output = token_cpy(stack_extract(memory->stack, node->op));
     if (NULL == output)
     {
+        fprintf(stderr, "variable not found: %s ", token_get_display(node->op));
         DEBUG;
-        fprintf(stderr, "ERROR: variable not found: %s\n", token_get_display(node->op));
         return NULL;
     }
 
@@ -271,6 +371,11 @@ static struct token *translator_visit_value_node(const struct node *node, struct
 
 struct token *translator_visit(const struct node *node, struct memory *memory)
 {
+    if (NULL == node || NULL == memory)
+    {
+        return NULL;
+    }
+
     static const struct {
         char *node_type;
         struct token *(*fn)(const struct node *node, struct memory *memory);
@@ -282,6 +387,8 @@ struct token *translator_visit(const struct node *node, struct memory *memory)
         { .node_type = ASSIGNMENT, .fn = translator_visit_statement_node },
         { .node_type = DECLARATION, .fn = translator_visit_statement_node },
         { .node_type = FUNCTION, .fn = translator_visit_function_node },
+        { .node_type = FUNCTION_CALL, .fn = translator_visit_function_call_node },
+        { .node_type = FUNCTION_ARGUMENT, .fn = translator_visit_function_argument_node },
         { .node_type = PROGRAM, .fn = translator_visit_program_node },
     };
 
@@ -303,7 +410,7 @@ struct memory *translator_memory_deinit(struct memory *memory)
     {
         return NULL;
     }
-
+    
     if (NULL != memory->scope)
     {
         memory->scope = scope_destroy(memory->scope);
@@ -330,13 +437,13 @@ struct memory *translator_memory_init()
     }
 
     memory->scope = scope_create("global");
-
     if (NULL == memory->scope)
     {
         return translator_memory_deinit(memory);
     }
 
     memory->stack = NULL;
+    memory->main_visited = 0;
 
     return memory;
 }
@@ -355,6 +462,7 @@ struct token *translator_translate(const struct node *ast)
     memory = translator_memory_init();
     if (NULL == memory)
     {
+        DEBUG;
         return NULL;
     }
 
@@ -367,6 +475,11 @@ struct token *translator_translate(const struct node *ast)
     }
 
     memory = translator_memory_deinit(memory);
+
+    if (SEMANTIC_ERROR)
+    {
+        return NULL;
+    }
 
     return result;
 }

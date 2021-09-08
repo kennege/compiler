@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "utils.h"
 #include "token.h"
 #include "parser.h"
 #include "lexer.h"
@@ -37,7 +36,7 @@ struct token *interpreter(char *input_str)
     
     result = translator_translate(ast);
 
-    token_list_destroy(token_list);
+    token_list = token_list_destroy(token_list);
     ast = ast_destroy(ast);
 
     return result;

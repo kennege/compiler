@@ -6,7 +6,20 @@
 #include "ast.h"
 #include "utils.h"
 
-struct node *ast_destroy(struct node *ast)
+struct node *ast_destroy(struct node *node)
+{
+    if (NULL == node)
+    {
+        return NULL;
+    }
+
+    free(node);
+    node->set = 0;
+
+    return NULL;
+}
+
+struct node *ast_destroy_all(struct node *ast)
 {
     if (NULL == ast)
     {
@@ -15,23 +28,20 @@ struct node *ast_destroy(struct node *ast)
 
     if (NULL != ast->left)
     {
-        ast->left = ast_destroy(ast->left);
+        ast->left = ast_destroy_all(ast->left);
     }
 
     if (NULL != ast->right)
     {
-        ast->right = ast_destroy(ast->right);
+        ast->right = ast_destroy_all(ast->right);
     }
 
     if (NULL != ast->arguments)
     {
-        ast->arguments = ast_destroy(ast->arguments);
+        ast->arguments = ast_destroy_all(ast->arguments);
     }
 
-    ast->set = 0;
-    free(ast);
-
-    return NULL;
+    return ast_destroy(ast);
 }
 
 static struct node *ast_node_create()
@@ -48,21 +58,21 @@ static struct node *ast_node_create()
     ast->left = malloc(sizeof(*ast->left));
     if (NULL == ast->left)
     {
-        return ast_destroy(ast);
+        return ast_destroy_all(ast);
     }
     memset(ast->left, 0, sizeof(*ast->left));
 
     ast->right = malloc(sizeof(*ast->right));
     if (NULL == ast->right)
     {
-        return ast_destroy(ast);
+        return ast_destroy_all(ast);
     }
     memset(ast->right, 0, sizeof(*ast->right));
 
     ast->arguments = malloc(sizeof(*ast->arguments));
     if (NULL == ast->arguments)
     {
-        return ast_destroy(ast);
+        return ast_destroy_all(ast);
     }
     memset(ast->arguments, 0, sizeof(*ast->arguments));
 
@@ -73,7 +83,7 @@ static struct node *ast_node_create()
     return ast;
 }
 
-struct node *ast_binary_node_add(struct node *left, struct token *op, struct node *right)
+struct node *ast_binary_node_create(struct node *left, struct token *op, struct node *right)
 {
     struct node *node;
 
@@ -96,7 +106,7 @@ struct node *ast_binary_node_add(struct node *left, struct token *op, struct nod
     return node;
 }
 
-struct node *ast_unary_node_add(struct token *op, struct node *left)
+struct node *ast_unary_node_create(struct token *op, struct node *left)
 {
     struct node *node;
 
@@ -139,7 +149,7 @@ struct node *ast_value_node_set(struct token *op)
     return node;
 }
 
-struct node *ast_variable_node_add(struct token *op)
+struct node *ast_variable_node_create(struct token *op)
 {
     struct node *node;
 
@@ -160,7 +170,7 @@ struct node *ast_variable_node_add(struct token *op)
     return node;
 }
 
-struct node *ast_assignment_node_add(struct node *left, struct token *op, struct node *right)
+struct node *ast_assignment_node_create(struct node *left, struct token *op, struct node *right)
 {
     struct node *node;
 
@@ -183,7 +193,7 @@ struct node *ast_assignment_node_add(struct node *left, struct token *op, struct
     return node;
 }
 
-struct node *ast_declaration_node_add(struct node *left, struct token *op, struct node *right)
+struct node *ast_declaration_node_create(struct node *left, struct token *op, struct node *right)
 {
     struct node *node;
 
@@ -206,7 +216,40 @@ struct node *ast_declaration_node_add(struct node *left, struct token *op, struc
     return node;
 }
 
-struct node *ast_function_node_add(struct token *name)
+struct node *ast_function_call_node_create(struct token *name)
+{
+    struct node *node;
+
+    if ( NULL == name)
+    {
+        return NULL;
+    }
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->op = name;
+    node->type = FUNCTION_CALL;
+    node->set = 1;
+
+    return node;
+}
+
+int ast_function_call_node_add_variables(struct node *node, struct node *variables)
+{
+    if (NULL == node || NULL == variables)
+    {
+        return -1;
+    }
+
+    node->left = variables;
+
+    return 0;
+}
+
+struct node *ast_function_node_create(struct token *name)
 {
     struct node *node;
 
@@ -225,6 +268,27 @@ struct node *ast_function_node_add(struct token *name)
     node->right = NULL;
     node->arguments = NULL;
     node->type = FUNCTION;
+    node->set = 1;
+
+    return node;
+}
+
+struct node *ast_function_argument_node_create(struct token *name)
+{
+    struct node *node;
+
+    if (NULL == name)
+    {
+        return NULL;
+    }
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }
+    node->op = name;
+    node->type = FUNCTION_ARGUMENT;
     node->set = 1;
 
     return node;
@@ -266,7 +330,7 @@ int ast_function_node_add_return(struct node *node, struct node *return_value)
     return 0;
 }
 
-struct node *ast_program_node_add(struct node *function_list)
+struct node *ast_program_node_create(struct node *function_list)
 {
     struct node *node;
 
@@ -310,6 +374,26 @@ int ast_node_append(struct node **list_head, struct node *new)
 
     last->next = new;
     new->next = NULL;
+
+    return 0;
+}
+
+int ast_node_push(struct node **list_head, struct node *new)
+{
+    if (NULL == new)
+    {
+        DEBUG;
+        return -1;
+    }
+
+    if (NULL == *list_head)
+    {
+        *list_head = new;
+        return 0;
+    }
+
+    new->next = *list_head;
+    *list_head = new;
 
     return 0;
 }

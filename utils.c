@@ -66,16 +66,3 @@ int num_digits(int input_num)
     
     return num_digits;
 }
-
-size_t string_len(const char *str)
-{
-    size_t i;
-
-    i = 0;
-    while (str[i] != '\0' && str[i] != '\n')
-    {
-        i++;
-    }
-
-    return i;
-}
