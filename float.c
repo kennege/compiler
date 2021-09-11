@@ -7,7 +7,7 @@
 #include "token.h"
 #include "float.h"
 
-static int float_from_token(const struct token *token, float *in_float)
+static float float_from_token(const struct token *token, float *in_float)
 {
     char *str;
 
@@ -130,6 +130,118 @@ static struct token *float_negate(float in_float)
     return output;
 }
 
+static struct token *float_and(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float && r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_or(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float || r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_not(float in_float)
+{
+    struct token *output;
+
+    output = float_to_token(!in_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_equal_to(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float == r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_greater_than(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float > r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_greater_equal_to(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float >= r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_less_than(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float < r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_less_equal_to(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = float_to_token(l_float <= r_float);
+    if (NULL == output)
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    return output;
+}
+
 struct token *float_binary_operations(const struct token *l_token, const struct token *r_token, const char *op)
 {
     float l_float, r_float;
@@ -169,6 +281,48 @@ struct token *float_binary_operations(const struct token *l_token, const struct 
     return NULL;
 }
 
+struct token *float_comparisons(const struct token *l_token, const struct token *r_token, const char *comp)
+{
+    float l_float, r_float;
+    struct token *output;
+
+    struct {
+        char *comp;
+        struct token *(*fn)(float l_float, float r_float);
+    } valid_comparisons[] = {
+        { .comp = AND, .fn = float_and },
+        { .comp = OR, .fn = float_or },
+        { .comp = EQUIVALENT, .fn = float_equal_to },
+        { .comp = GREATER_THAN, .fn = float_greater_than },
+        { .comp = GREATER_EQUAL, .fn = float_greater_equal_to },
+        { .comp = LESS_THAN, .fn = float_less_than },
+        { .comp = LESS_EQUAL, .fn = float_less_equal_to },
+    };
+
+    if (0 != float_from_token(l_token, &l_float) || 0 != float_from_token(r_token, &r_float))
+    {
+        DEBUG;
+        return NULL;
+    }
+
+    for (int i=0; i < LENGTH(valid_comparisons); i++)
+    {
+        if (0 == strcmp(valid_comparisons[i].comp, comp))
+        {
+            output = valid_comparisons[i].fn(l_float, r_float);
+            if (NULL == output)
+            {
+                DEBUG;
+                return NULL;
+            }
+            return output;
+        }
+    }
+
+    DEBUG;
+    return NULL;
+}
+
 struct token *float_unary_operations(const struct token *token, const char *op)
 {
     float in_float;
@@ -180,6 +334,7 @@ struct token *float_unary_operations(const struct token *token, const char *op)
     } valid_operations[] = {
         { .op = PLUS, .fn = float_pass },
         { .op = MINUS, .fn = float_negate },
+        { .op = NOT, .fn = float_not },
     };
 
     if (0 != float_from_token(token, &in_float))

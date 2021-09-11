@@ -4,7 +4,7 @@
 struct token *lexer_lex(char *input_str);
 
 /* Reserved Keywords */
-#define DOUBLE_QUOTE "\""
+#define DOUBLE_QUOTE "'"
 #define COMMENT "//"
 #define ASSIGN ":="
 #define CONST "const"
@@ -15,6 +15,7 @@ struct token *lexer_lex(char *input_str);
 #define OR "||"
 #define IF "if"
 #define FOR "for"
+#define ELSE "else"
 #define WHILE "while"
 #define RETURN "return"
 #define EQUIVALENT "=="
@@ -32,10 +33,10 @@ struct token *lexer_lex(char *input_str);
 #define MINUS "-"
 #define MULTIPLY "*"
 #define DIVIDE "/"
-#define LPAREN "("
-#define RPAREN ")"
-#define LBRACE "{"
-#define RBRACE "}"
+#define OPEN_PAREN "("
+#define CLOSE_PAREN ")"
+#define OPEN_BRACE "{"
+#define CLOSE_BRACE "}"
 #define EQUALS "="
 #define COMMA ","
 #define DOT "."

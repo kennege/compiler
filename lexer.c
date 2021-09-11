@@ -15,9 +15,11 @@ struct window
 static const struct {
     char *keyword;
 } reserved_keywords[] = {
+    { EQUIVALENT},
     { RETURN },
     { CONST },
     { FUNC },
+    { ELSE },
     { VAR },
     { IF },
     { OR },
@@ -42,22 +44,22 @@ static const struct {
     char *character;
 } reserved_characters[] = {
     { DOUBLE_QUOTE },
+    { CLOSE_PAREN },
+    { OPEN_PAREN },
     { WHITESPACE },
     { DIVIDE },
-    { LPAREN },
-    { RPAREN },
     { MINUS },
     { COMMA },
     { DOT },
     { NOT },
     { PLUS },
-    { LBRACE },
-    { RBRACE },
     { EQUALS },
     { MULTIPLY },
     { SEMICOLON },
-    { EQUIVALENT },
     { LESS_THAN },
+    { EQUIVALENT },
+    { OPEN_BRACE },
+    { CLOSE_BRACE },
     { GREATER_THAN },
 };
 
@@ -135,7 +137,6 @@ static char *lexer_is_variable_type(const char *input_str, struct window *window
 
 static char *lexer_return_float_or_int(const char *input_str, struct window *window)
 {
-    // TODO: if previous 2 tokens contain vartype, set to vartype
     for (int i = window->left; i < window->right; i++)
     {
         if (input_str[i] == DOT[0])
@@ -167,25 +168,42 @@ static char *lexer_is_number(const char *input_str, struct window *window)
     return NULL;
 }
 
-static char *lexer_is_string(const char *input_str, struct window *window)
+static char *lexer_is_variable_name(const char *input_str, struct window *window)
 {
     int n_chars;
-    // TODO: start and end with double quotes
-    //TODO: add separate function for varname which doesnt require double quotes
     n_chars = strlen(CHARACTERS);   
     for (int i=0; i<n_chars; i++)
     {
         if (input_str[window->right] == CHARACTERS[i])
         {
             window->right++;
-            if (NULL == lexer_is_string(input_str, window))
+            if (NULL == lexer_is_variable_name(input_str, window))
             {
                 window->right--;    
             }
-            return STRING;
+            return VARNAME;
         }
     }
                 
+    return NULL;
+}
+
+static char *lexer_is_string(const char *input_str, struct window *window)
+{
+    if (input_str[window->right] == DOUBLE_QUOTE[0])
+    {
+        window->right++;
+        if (NULL == lexer_is_variable_name(input_str, window))
+        {
+            window->right--;
+            return NULL;
+        }
+    }
+    if (input_str[window->right] == DOUBLE_QUOTE[0])
+    {
+        return STRING;
+    }
+
     return NULL;
 }
 
@@ -210,13 +228,14 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
     static const struct {
         char *(*fn)(const char *input_str, struct window *window);
     } token_types[] = {
-        { lexer_is_comment }, // must be first to avoid confusion with DIVIDE
+        { lexer_is_comment }, // order important
+        { lexer_is_reserved_keyword },
         { lexer_is_reserved_character },
         { lexer_is_special_character },
-        { lexer_is_reserved_keyword },
         { lexer_is_variable_type },
         { lexer_is_number },
-        { lexer_is_string }, // must be last to avoid confusion with reserved keywords
+        { lexer_is_variable_name },
+        { lexer_is_string }, 
     };
 
     for (int i=0; i<LENGTH(token_types); i++)

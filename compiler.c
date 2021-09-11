@@ -37,7 +37,7 @@ struct token *interpreter(char *input_str)
     result = translator_translate(ast);
 
     token_list = token_list_destroy(token_list);
-    ast = ast_destroy(ast);
+    ast = ast_destroy_all(ast);
 
     return result;
 }

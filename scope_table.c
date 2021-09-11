@@ -192,7 +192,10 @@ void scope_print(struct scope *scope)
     printf("\nSCOPE TABLE: \n");
     while (NULL != scope)
     {
-        printf("Current scope: %s\n", scope->name);
+        if (1 == scope->current)
+        {
+            printf("Current scope: %s\n", scope->name);
+        }
         if (NULL != scope->parent)
         {
             printf("Parent: %s\n", scope->parent->name);
