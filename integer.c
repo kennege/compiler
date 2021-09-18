@@ -14,21 +14,21 @@ static int integer_from_token(const struct token *token, int *in_int)
     in_str = token_get_value(token);
     if (NULL == in_str)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
     sscanf(in_str, "%d", in_int);
     if (NULL == in_int)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
     return 0;
 }
 
-static struct token *integer_to_token(int result)
+struct token *integer_to_token(int result)
 {
     struct token *output;
     char *value;
@@ -39,7 +39,7 @@ static struct token *integer_to_token(int result)
     value = malloc(size * sizeof(*value));
     if (NULL == value)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
@@ -48,7 +48,7 @@ static struct token *integer_to_token(int result)
     output = token_create(INT, value, size-1);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
@@ -63,7 +63,7 @@ static struct token *integer_add(int l_int, int r_int)
     output = integer_to_token(l_int + r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -77,7 +77,7 @@ static struct token *integer_subtract(int l_int, int r_int)
     output = integer_to_token(l_int - r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -91,7 +91,7 @@ static struct token *integer_multiply(int l_int, int r_int)
     output = integer_to_token(l_int * r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -105,7 +105,7 @@ static struct token *integer_divide(int l_int, int r_int)
     output = integer_to_token(l_int / r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -119,7 +119,7 @@ static struct token *integer_pass(int in_int)
     output = integer_to_token(in_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -133,7 +133,7 @@ static struct token *integer_negate(int in_int)
     output = integer_to_token(-in_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -147,7 +147,7 @@ static struct token *integer_and(int l_int, int r_int)
     output = integer_to_token(l_int && r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -161,7 +161,7 @@ static struct token *integer_or(int l_int, int r_int)
     output = integer_to_token(l_int || r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -175,7 +175,7 @@ static struct token *integer_not(int in_int)
     output = integer_to_token(!in_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -189,7 +189,7 @@ static struct token *integer_equal_to(int l_int, int r_int)
     output = integer_to_token(l_int == r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -203,7 +203,7 @@ static struct token *integer_greater_than(int l_int, int r_int)
     output = integer_to_token(l_int > r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -217,7 +217,7 @@ static struct token *integer_greater_equal_to(int l_int, int r_int)
     output = integer_to_token(l_int >= r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -231,7 +231,7 @@ static struct token *integer_less_than(int l_int, int r_int)
     output = integer_to_token(l_int < r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -245,7 +245,49 @@ static struct token *integer_less_equal_to(int l_int, int r_int)
     output = integer_to_token(l_int <= r_int);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *integer_not_equal_to(int l_int, int r_int)
+{
+    struct token *output;
+
+    output = integer_to_token(l_int != r_int);
+    if (NULL == output)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *integer_increment(int in_int)
+{
+    struct token *output;
+
+    output = integer_to_token(in_int++);
+    if (NULL == output)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *integer_decrement(int in_int)
+{
+    struct token *output;
+
+    output = integer_to_token(in_int--);
+    if (NULL == output)
+    {
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -269,7 +311,7 @@ struct token *integer_binary_operations(const struct token *l_token, const struc
 
     if (0 != integer_from_token(l_token, &l_int) || 0 != integer_from_token(r_token, &r_int))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -280,14 +322,14 @@ struct token *integer_binary_operations(const struct token *l_token, const struc
             output = valid_operations[i].fn(l_int, r_int);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -303,6 +345,7 @@ struct token *integer_comparisons(const struct token *l_token, const struct toke
         { .comp = AND, .fn = integer_and },
         { .comp = OR, .fn = integer_or },
         { .comp = EQUIVALENT, .fn = integer_equal_to },
+        { .comp = NOT_EQUAL, .fn = integer_not_equal_to },
         { .comp = GREATER_THAN, .fn = integer_greater_than },
         { .comp = GREATER_EQUAL, .fn = integer_greater_equal_to },
         { .comp = LESS_THAN, .fn = integer_less_than },
@@ -311,7 +354,7 @@ struct token *integer_comparisons(const struct token *l_token, const struct toke
 
     if (0 != integer_from_token(l_token, &l_int) || 0 != integer_from_token(r_token, &r_int))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -322,14 +365,14 @@ struct token *integer_comparisons(const struct token *l_token, const struct toke
             output = valid_comparisons[i].fn(l_int, r_int);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -345,11 +388,13 @@ struct token *integer_unary_operations(const struct token *token, const char *op
         { .op = PLUS, .fn = integer_pass },
         { .op = MINUS, .fn = integer_negate },
         { .op = NOT, .fn = integer_not },
+        { .op = INCREMENT, .fn = integer_increment },
+        { .op = DECREMENT, .fn = integer_decrement },
     };
 
     if (0 != integer_from_token(token, &in_int))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -360,13 +405,13 @@ struct token *integer_unary_operations(const struct token *token, const char *op
             output = valid_operations[i].fn(in_int);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }

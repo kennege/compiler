@@ -12,7 +12,7 @@ char *string_cpy(const char *input_str, size_t len)
     out_str = malloc((len+1) * sizeof(*out_str));
     if (NULL == out_str)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     memcpy(out_str, input_str, len);
@@ -51,18 +51,4 @@ char *string_cpycat(const char *fmt, ...)
     va_end(args);
 
     return out_str;
-}
-
-int num_digits(int input_num)
-{
-    int num_digits;
-
-    num_digits = 0;
-    while (0 != input_num)
-    {
-        input_num /= 10;
-        num_digits++;
-    }
-    
-    return num_digits;
 }

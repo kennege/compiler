@@ -1,3 +1,5 @@
 /testing
 compiler
 .vscode*
+/test_programs
+goLite

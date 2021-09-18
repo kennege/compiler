@@ -16,15 +16,16 @@ struct token *lexer_lex(char *input_str);
 #define IF "if"
 #define FOR "for"
 #define ELSE "else"
-#define WHILE "while"
 #define RETURN "return"
+#define INCREMENT "++"
+#define DECREMENT "--"
+#define NOT_EQUAL "!="
 #define EQUIVALENT "=="
 #define LESS_EQUAL "<="
 #define GREATER_EQUAL ">="
 
 /* Variable Types */
 #define INT "int"
-#define BOOL "bool"
 #define FLOAT "float32"
 #define STRING "string"
 

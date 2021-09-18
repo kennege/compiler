@@ -8,8 +8,8 @@ struct node
     struct node *right;
 
     struct node *arguments;
+    struct node *body;
     char *type;
-    int set;
 
     struct next
     {
@@ -27,8 +27,7 @@ struct node
 #define FUNCTION_ARGUMENT "FUNCTION_ARGUMENT"
 #define DECLARATION "DECLARATION"
 #define ASSIGNMENT "ASSIGNMENT"
-#define WHILE_LOOP "WHILE_LOOP"
-#define FOR_LOOP "FOR_LOOP"
+#define LOOP "LOOP"
 #define COMPARISON "COMPARISON"
 #define CONDITION "CONDITION"
 #define FUNCTION "FUNCTION"
@@ -46,13 +45,15 @@ struct node *ast_assignment_node_create(struct node *left, struct token *op, str
 struct node *ast_declaration_node_create(struct node *left, struct token *op, struct node *right);
 struct node *ast_comparison_node_create(struct token *not, struct node *left, struct token *op, struct node *right);
 struct node *ast_condition_node_create(struct node *comparison_list, struct token *condition);
-struct node *ast_condition_else_node_create(struct node *statement_list, struct node *condition_declaration, struct token *condition);
+struct node *ast_condition_else_node_create(struct node *statement_list, struct token *condition);
+struct node *ast_loop_node_create(struct node *declaration, struct node *comparison, struct node *assignment, struct token *op);
 struct node *ast_function_argument_node_create(struct token *name);
 struct node *ast_function_call_node_create(struct token *name);
 struct node *ast_function_node_create(struct token *name);
 struct node *ast_program_node_create(struct node *function_list);
 
 int ast_condition_node_add_body(struct node *condition, struct node *statement_list);
+int ast_loop_node_add_body(struct node *node, struct node *body);
 
 int ast_function_node_add_arguments(struct node *node, struct node *arguments);
 int ast_function_node_add_body(struct node *node, struct node *assignment_list);
@@ -61,9 +62,10 @@ int ast_function_call_node_add_variables(struct node *node, struct node *variabl
 
 int ast_node_append(struct node **list_head, struct node *new, struct token *operator);
 int ast_node_push(struct node **list_head, struct node *new);
-const struct node *ast_node_index(const struct node *list_head, int index);
+const struct node *ast_node_index(const struct node **list_head, int index);
 size_t ast_num_nodes(const struct node *list_head);
 
 void ast_print(const struct node *ast, int level, char *location);
+char *ast_node_display(const struct node *node);
 
 #endif // _AST_H_

@@ -15,7 +15,10 @@ struct window
 static const struct {
     char *keyword;
 } reserved_keywords[] = {
-    { EQUIVALENT},
+    { EQUIVALENT },
+    { NOT_EQUAL },
+    { INCREMENT },
+    { DECREMENT },
     { RETURN },
     { CONST },
     { FUNC },
@@ -25,7 +28,6 @@ static const struct {
     { OR },
     { AND },
     { FOR },
-    { WHILE },
     { ASSIGN },
     { LESS_EQUAL },
     { GREATER_EQUAL },
@@ -35,7 +37,6 @@ static const struct {
     char *type;
 } variable_types[] = {
     { INT },
-    { BOOL },
     { FLOAT },
     { STRING },
 };
@@ -247,7 +248,7 @@ static char *lexer_get_token_type(const char *input_str, struct window *window)
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     fprintf(stderr, "Didnt recognise %c at character %d\n",input_str[window->left], window->left);
     return NULL;
 }
@@ -260,7 +261,7 @@ struct token *lexer_lex(char *input_str)
 
     if (NULL == input_str)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
  
@@ -271,7 +272,7 @@ struct token *lexer_lex(char *input_str)
         type = lexer_get_token_type(input_str, &window);      
         if (NULL == type)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return token_list_destroy(token_list);
         }
 
@@ -284,7 +285,7 @@ struct token *lexer_lex(char *input_str)
 
         if (0 != token_list_create_and_append(type, &input_str[window.left], window.right - window.left + 1, &token_list))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return token_list_destroy(token_list);
         };
 

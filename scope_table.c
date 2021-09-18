@@ -49,7 +49,7 @@ struct scope *scope_create(char *name)
 
     if (NULL == name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -63,7 +63,7 @@ struct scope *scope_create(char *name)
 
     if (NULL == new->name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return scope_destroy(new);
     }
 
@@ -101,7 +101,7 @@ struct scope *scope_get_current(struct scope **scope)
 
     if (NULL == *scope)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -115,7 +115,7 @@ struct scope *scope_get_current(struct scope **scope)
         tmp = tmp->next;
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -125,21 +125,21 @@ int scope_add(struct scope **scope, char *name)
 
     if (NULL == name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
     new = scope_create(name);
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
     new->parent = scope_get_current(scope);
     if (NULL == new->parent)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -171,7 +171,7 @@ int scope_insert(struct scope *scope, struct token *contents)
 {
     if (NULL == contents)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -179,7 +179,7 @@ int scope_insert(struct scope *scope, struct token *contents)
     {
         if (0 != token_list_append(contents, &(scope_get_current(&scope)->contents)))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return -1;
         }
     }

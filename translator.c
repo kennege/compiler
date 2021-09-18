@@ -14,7 +14,7 @@
 #include "translator.h"
 
 #define TRUE "1"
-#define False "0"
+#define FALSE "0"
 
 struct memory
 {
@@ -26,14 +26,14 @@ struct memory
 
 struct token *translator_visit(const struct node *node, struct memory *memory);
 
-char *translator_get_types(const struct token *left, const struct token *right, struct memory *memory)
+static char *translator_get_types(const struct token *left, const struct token *right, struct memory *memory)
 {
     if (0 != strcmp(token_get_type(left), token_get_type(right)))
     {
         if ((0 == strcmp(token_get_type(left), FLOAT) && 0 == strcmp(token_get_type(right), INT)) ||
         (0 == strcmp(token_get_type(right), FLOAT) && 0 == strcmp(token_get_type(left), INT)))
         {  
-            return FLOAT;
+            return INT;
         }
         else
         {
@@ -52,6 +52,7 @@ char *translator_get_types(const struct token *left, const struct token *right, 
 
 static struct token *translator_operate_unary(const struct token *token, const char *op, struct memory *memory)
 {
+    debug_print("%s\n",token_get_display(token));
     char *type;
     struct token *result;
 
@@ -65,14 +66,14 @@ static struct token *translator_operate_unary(const struct token *token, const c
 
     if (NULL == token || NULL == op)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     type = token_get_type(token);
     if (NULL == type)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
@@ -91,7 +92,7 @@ static struct token *translator_operate_unary(const struct token *token, const c
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -111,14 +112,14 @@ static struct token *translator_operate_binary(const struct token *left, const s
 
     if (NULL == left || NULL == right || NULL == op)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     type = translator_get_types(left, right, memory);
     if (NULL == type)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
@@ -137,12 +138,13 @@ static struct token *translator_operate_binary(const struct token *left, const s
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
 static struct token *translator_compare(const struct token *left, const struct token *right, const char *op, struct memory *memory)
 {
+    debug_print("comparing %s %s %s\n",token_get_value(left), op, token_get_value(right));
     char *type;
     struct token *result;
 
@@ -156,14 +158,14 @@ static struct token *translator_compare(const struct token *left, const struct t
 
     if (NULL == left || NULL == right || NULL == op)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     type = translator_get_types(left, right, memory);
     if (NULL == type)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
@@ -174,6 +176,7 @@ static struct token *translator_compare(const struct token *left, const struct t
             result = comp_types[i].comparisons(left, right, op);
             if (NULL != result)
             {
+                debug_print("comparison result: %s\n",token_get_value(result));               
                 return result;
             }
             memory->semantic_error = 1;
@@ -182,7 +185,7 @@ static struct token *translator_compare(const struct token *left, const struct t
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -192,7 +195,7 @@ static struct token *translator_update_bool(const struct token *current, const s
 
     if (NULL == current)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -204,19 +207,23 @@ static struct token *translator_update_bool(const struct token *current, const s
     new = integer_comparisons(current, prev, token_get_value(comparison));
     if (NULL == new)
     {
+        ERROR_MESSAGE;
         return NULL;
     }
+    debug_print("bool result: %s\n", token_get_value(new));
 
     return new;
 }
 
 static struct token *translator_visit_program_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     return translator_visit(node->left, memory);
 }
 
 static struct token *translator_visit_function_argument_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     if (NULL == node)
     {
         return NULL;
@@ -224,12 +231,12 @@ static struct token *translator_visit_function_argument_node(const struct node *
 
     if (0 != stack_append(&(memory->stack), node->op, NULL))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     if (0 != stack_function_arg_append(memory->stack, node->op))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -239,6 +246,7 @@ static struct token *translator_visit_function_argument_node(const struct node *
 static struct token *translator_visit_function_node(const struct node *node, struct memory *memory)
 {
     /* if name == main: traverse all function nodes, else: just add function name to memory */
+    debug_print("%s\n", ast_node_display(node));
     const struct node *next_node;
     struct token *return_token;
     size_t n_nodes;
@@ -247,19 +255,19 @@ static struct token *translator_visit_function_node(const struct node *node, str
     n_nodes = ast_num_nodes(node);
     for (int i=0; i<n_nodes; i++)
     {
-        next_node = ast_node_index(node, i);
+        next_node = ast_node_index(&node, i);
         if ((0 == strcmp(token_get_value(next_node->op), MAIN) && !memory->main_visited) ||
             (0 != strcmp(token_get_value(next_node->op), MAIN) && memory->main_visited))
         {
             memory->main_visited = 1;
             if (0 != scope_add(&(memory->scope), token_get_value(next_node->op))) 
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }   
             if (0 != stack_append(&(memory->stack), next_node->op, translator_visit(next_node->left, memory)))
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             
@@ -270,19 +278,19 @@ static struct token *translator_visit_function_node(const struct node *node, str
                 return_token = token_cpy(translator_visit(next_node->right, memory));
                 if (NULL == return_token)
                 {
-                    DEBUG;
+                    ERROR_MESSAGE;
                     return NULL;
                 }
                 if (0 != scope_insert(memory->scope, token_cpy(next_node->op)))
                 {
-                    DEBUG;
+                    ERROR_MESSAGE;
                     return token_destroy(return_token);
                 } 
             }
 
             if (0 != stack_destroy_local(&(memory->stack), next_node->op))
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return token_destroy(return_token);
             }
         } 
@@ -290,7 +298,7 @@ static struct token *translator_visit_function_node(const struct node *node, str
         {
             if (0 != stack_function_declaration_append(&(memory->stack), next_node->op, next_node))
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }  
             translator_visit(next_node->arguments, memory);
@@ -302,24 +310,26 @@ static struct token *translator_visit_function_node(const struct node *node, str
 
 static struct token *translator_visit_function_call_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     size_t n_args;
-    const struct node *next_node;
+    const struct node *next_node, *current_node;
     const struct token *arg_name, *arg_val;
 
-    n_args = ast_num_nodes(node->left);
+    current_node = node->left;
+    n_args = ast_num_nodes(current_node);
     for (int i=0; i<n_args; i++)
     {
-        next_node = ast_node_index(node->left, i);
+        next_node = ast_node_index(&current_node, i);
         arg_name = stack_get_function_arg(memory->stack, node->op, i);
         arg_val = stack_extract(memory->stack, next_node->op);
         if (NULL == arg_name || NULL == arg_val)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
         if (0 != stack_append(&(memory->stack), arg_name, arg_val))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }      
     }
@@ -327,8 +337,54 @@ static struct token *translator_visit_function_call_node(const struct node *node
     return translator_visit(stack_get_address(memory->stack, node->op), memory);
 }
 
+static struct token *translator_visit_loop_node(const struct node *node, struct memory *memory)
+{
+    /* left = declaration, right = comparison, arguments = assignment, next = statement_list */
+    debug_print("%s\n", ast_node_display(node));
+    struct token *bool_current, *declaration, *assignment, *statement_list;
+
+    declaration = translator_visit(node->left, memory);
+    if (NULL == declaration)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    while (1)
+    {
+        bool_current = translator_visit(node->right, memory);
+        if (NULL == bool_current)
+        {
+            ERROR_MESSAGE;
+            return NULL;
+        }
+        
+        if (0 == strcmp(token_get_value(bool_current), FALSE))
+        {
+            break;
+        }
+
+        statement_list = translator_visit(node->body, memory);
+        if (NULL == statement_list)
+        {
+            ERROR_MESSAGE;
+            return NULL;
+        }
+
+        assignment = translator_visit(node->arguments, memory);
+        if (NULL == assignment)
+        {
+            ERROR_MESSAGE;
+            return NULL;
+        }
+    }
+
+    return statement_list;
+}
+
 static struct token *translator_visit_comparison_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     size_t n_comparisons;
     struct token *bool_current, *bool_prev, *left, *right;
     const struct node *next_node;
@@ -337,17 +393,16 @@ static struct token *translator_visit_comparison_node(const struct node *node, s
     bool_current = NULL;
     for (int i=0; i<n_comparisons; i++)
     {
-        bool_prev = bool_current;
-        next_node = ast_node_index(node, i);
+        next_node = ast_node_index(&node, i);
         left = translator_visit(next_node->left, memory);
         right = translator_visit(next_node->right, memory);
         if (NULL == left || NULL == right)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
         bool_current = translator_compare(left, right, token_get_value(next_node->op), memory);
-        bool_current = translator_update_bool(bool_current, bool_prev, next_node->next->operator);
+        bool_prev = translator_update_bool(bool_current, bool_prev, next_node->next->operator);
     }
 
     return bool_current;
@@ -355,44 +410,56 @@ static struct token *translator_visit_comparison_node(const struct node *node, s
 
 static struct token *translator_visit_condition_node(const struct node *node, struct memory *memory)
 {
-    size_t n_options;
+    debug_print("%s\n", ast_node_display(node));
+    size_t n_conditions;
     struct token *comparison;
-    const struct node *next_node;
+    const struct node *condition, *next_condition;
 
-    n_options = ast_num_nodes(node);
-    for (int i=0; i<n_options; i++)
+    condition = node->body;
+    n_conditions = ast_num_nodes(condition);
+    for (int i=0; i<n_conditions; i++)
     {
-        next_node = ast_node_index(node, i);
-        comparison = translator_visit(next_node->left, memory);
-        if (token_compare(comparison, TRUE))
+        next_condition = ast_node_index(&condition, i);
+        if (NULL == next_condition->left) // else node
         {
-            return translator_visit(next_node->right, memory);
+            return translator_visit(next_condition->right, memory);
+        }
+        comparison = translator_visit(next_condition->left, memory);
+        if (NULL == comparison)
+        {
+            ERROR_MESSAGE;
+            return NULL;
+        }
+        if (0 == strcmp(token_get_value(comparison), TRUE))
+        {
+            return translator_visit(next_condition->right, memory);
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
 static struct token *translator_visit_declaration_node(const struct node *node, struct token *value, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     if (scope_variable_exists(memory->scope, node->left->op))
     {
-        memory->semantic_error = 1;
-        fprintf(stderr, "ERROR: variable '%s' defined more than once ", token_get_value(node->left->op));
-        DEBUG;
+        // memory->semantic_error = 1;
+        // fprintf(stderr, "ERROR: variable '%s' defined more than once ", token_get_value(node->left->op));
+        // ERROR_MESSAGE;
         return token_destroy(value);
     }
 
     if (0 != scope_insert(memory->scope, token_cpy(node->left->op)))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(value);
     }
 
     if (0 != stack_append(&(memory->stack), node->left->op, value)) 
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(value);
     }
 
@@ -401,9 +468,11 @@ static struct token *translator_visit_declaration_node(const struct node *node, 
 
 static struct token *translator_visit_assignment_node(const struct node *node, struct token *value, struct memory *memory)
 {
+    debug_print("%s. assigning: %s %s %s\n", __func__, 
+        token_get_value(node->left->op), token_get_value(node->op), token_get_value(value));
     if (0 != stack_append(&(memory->stack), node->left->op, value)) 
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(value);
     }   
 
@@ -430,13 +499,13 @@ static struct token *translator_visit_statement_node(const struct node *node, st
     for (int i=0; i<n_nodes; i++)
     {
         visited = 0;
-        next_node = ast_node_index(node, i);
-        value = translator_visit(next_node->right, memory);
+        next_node = ast_node_index(&node, i);
         
         for (int i=0; i<LENGTH(tab); i++)
         {        
             if (0 == strcmp(next_node->type, tab[i].node_type))
             {
+                value = translator_visit(next_node->right, memory);                
                 tab[i].fn(next_node, value, memory);
                 visited = 1;
             }
@@ -445,7 +514,7 @@ static struct token *translator_visit_statement_node(const struct node *node, st
         if (!visited)
         {
             value = translator_visit(next_node, memory);
-        }
+        }        
     }
     
     return value;
@@ -453,6 +522,7 @@ static struct token *translator_visit_statement_node(const struct node *node, st
 
 static struct token *translator_visit_variable_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     struct token *output;
 
     output = token_cpy(stack_extract(memory->stack, node->op));
@@ -460,7 +530,7 @@ static struct token *translator_visit_variable_node(const struct node *node, str
     {
         memory->semantic_error = 1;
         fprintf(stderr, "variable not found: %s ", token_get_display(node->op));
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -469,6 +539,7 @@ static struct token *translator_visit_variable_node(const struct node *node, str
 
 static struct token *translator_visit_binary_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     struct token *left, *right;
 
     struct {
@@ -488,19 +559,20 @@ static struct token *translator_visit_binary_node(const struct node *node, struc
             right = translator_visit(node->right, memory);
             if (NULL == left || NULL == right)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return translator_operate_binary(left, right, binary_ops[i].op, memory); 
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
 static struct token *translator_visit_unary_node(const struct node *node, struct memory *memory)
 {  
+    debug_print("%s, %s\n", __func__, ast_node_display(node));
     struct token *output;
 
     struct {
@@ -519,12 +591,13 @@ static struct token *translator_visit_unary_node(const struct node *node, struct
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
 static struct token *translator_visit_value_node(const struct node *node, struct memory *memory)
 {
+    debug_print("%s\n", ast_node_display(node));
     return translator_operate_unary(node->op, PLUS, memory);
 }
 
@@ -547,27 +620,26 @@ struct token *translator_visit(const struct node *node, struct memory *memory)
         { .node_type = DECLARATION, .fn = translator_visit_statement_node },
         { .node_type = COMPARISON, .fn = translator_visit_comparison_node },
         { .node_type = CONDITION, .fn = translator_visit_condition_node },
-        // { .node_type = WHILE_LOOP, .fn = translator_visit_while_node },
-        // { .node_type = FOR_LOOP, .fn = translator_visit_for_node },
-        { .node_type = FUNCTION, .fn = translator_visit_function_node },
-        { .node_type = FUNCTION_CALL, .fn = translator_visit_function_call_node },
+        { .node_type = LOOP, .fn = translator_visit_loop_node },
         { .node_type = FUNCTION_ARGUMENT, .fn = translator_visit_function_argument_node },
+        { .node_type = FUNCTION_CALL, .fn = translator_visit_function_call_node },
+        { .node_type = FUNCTION, .fn = translator_visit_function_node },
         { .node_type = PROGRAM, .fn = translator_visit_program_node },
     };
-
     for (int i=0; i<LENGTH(tab); i++)
     {
         if (0 == strcmp(node->type, tab[i].node_type))
         {
+            debug_print("%s\n",ast_node_display(node));
             return tab[i].fn(node, memory);
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
-struct memory *translator_memory_deinit(struct memory *memory)
+static struct memory *translator_memory_deinit(struct memory *memory)
 {
     if (NULL == memory)
     {
@@ -589,7 +661,7 @@ struct memory *translator_memory_deinit(struct memory *memory)
     return NULL;
 }
 
-struct memory *translator_memory_init()
+static struct memory *translator_memory_init()
 {
     struct memory *memory;
 
@@ -619,7 +691,7 @@ struct token *translator_translate(const struct node *ast)
 
     if (NULL == ast)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     // ast_print(ast, 0, "root");
@@ -627,7 +699,7 @@ struct token *translator_translate(const struct node *ast)
     memory = translator_memory_init();
     if (NULL == memory)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -636,6 +708,7 @@ struct token *translator_translate(const struct node *ast)
     if (memory->semantic_error)
     {
         memory = translator_memory_deinit(memory);
+        ERROR_MESSAGE;
         return NULL;
     }
 

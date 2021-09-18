@@ -12,36 +12,6 @@ struct node *parser_parse_factor(struct token **token_list);
 struct node *parser_parse_expression(struct token **token_list);
 struct node *parser_parse_statement_list(struct token **token_list);
 
-/* GRAMMAR
-
-    factor : [NEWLINE | SEMICOLON] (PLUS | MINUS | VARNAME) factor (NUMBER | (OPEN_PAREN expr CLOSE_PAREN))
-    
-    term : factor ((MULTIPLY | DIVIDE) factor) * 
-    
-    expression : term (PLUS | MINUS) term * 
-    
-    declaration_without_value : VAR VARNAME VARTYPE
-    
-    declaration_with_value : declaration_without_value EQUALS expression |
-        VARNAME ASSIGN expression
-
-    assignment : VARNAME EQUALS expression
-
-    statement_list : statement | (statement (NEWLINE | SEMICOLON) statement_list)
-
-    function arguments : VARTYPE VARNAME COMMA *
-
-    function declaration : FUNC VARNAME OPEN_PAREN [function_arguments] CLOSE_PAREN [VARTYPE] 
-        [NEWLINE | SEMICOLON] [RETURN (VARNAME | INT | FLOAT )] [NEWLINE | SEMICOLON] OPEN_BRACE
-
-    function : function declaration [NEWLINE | SEMICOLON] assignment_list
-        [NEWLINE | SEMICOLON] [RETURN] [NEWLINE | SEMICOLON] CLOSE_BRACE
-
-    function list : function | (function [NEWLINE | SEMICOLON] function_list)
-
-    program : function_list | assignment_list | expression
-*/
-
 static int skip_newlines(struct token **token_list)
 {
     int newline_found;
@@ -64,6 +34,7 @@ static int skip_newlines(struct token **token_list)
 struct node *parser_parse_function_call(struct token **token_list)
 {
     /* function_call : VARNAME OPEN_PAREN [factor | factor COMMA factor_list] CLOSE_PAREN */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *function_call, *param, *params;
     struct token *name, *tmp_list;
 
@@ -90,7 +61,7 @@ struct node *parser_parse_function_call(struct token **token_list)
             }
             else
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 params = ast_node_destroy(params);
                 function_call = ast_node_destroy(function_call);
                 return ast_node_destroy(param);
@@ -99,7 +70,7 @@ struct node *parser_parse_function_call(struct token **token_list)
     
         if (0 != token_compare(tmp_list, CLOSE_PAREN))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             params = ast_node_destroy(params);
             function_call = ast_node_destroy(function_call);
             return ast_node_destroy(param);            
@@ -107,8 +78,8 @@ struct node *parser_parse_function_call(struct token **token_list)
 
         token_list_step(&tmp_list);
         ast_function_call_node_add_variables(function_call, params);
-        *token_list = tmp_list;
     }
+    *token_list = tmp_list;
 
     return function_call;
 }
@@ -116,6 +87,7 @@ struct node *parser_parse_function_call(struct token **token_list)
 struct node *parser_parse_factor(struct token **token_list)
 {
     /* factor : VARNAME | ([NEWLINE | SEMICOLON] (PLUS | MINUS) (NUMBER | function_call | (OPEN_PAREN expression CLOSE_PAREN))) */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *expression, *function_call;
     struct token *token;
 
@@ -156,13 +128,13 @@ struct node *parser_parse_factor(struct token **token_list)
         expression = parser_parse_expression(token_list);
         if (NULL == expression)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return ast_node_destroy(expression);
         }
 
         if (0 != token_compare(*token_list, CLOSE_PAREN))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return ast_node_destroy(expression);
         }
         token_list_step(token_list);
@@ -170,20 +142,19 @@ struct node *parser_parse_factor(struct token **token_list)
         return expression;
     }
 
-    DEBUG;
     return expression; 
 }
 
 struct node *parser_parse_term(struct token **token_list)
 {   
     /* term : factor ((MULTIPLY | DIVIDE) factor) * */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *term;
     struct token *op;
 
     term = parser_parse_factor(token_list);
     if (NULL == term)
     {
-        DEBUG;
         return NULL;
     }
 
@@ -195,7 +166,7 @@ struct node *parser_parse_term(struct token **token_list)
             term = ast_binary_node_create(term, op, parser_parse_factor(token_list));
             if (NULL == term)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             continue;
@@ -209,13 +180,13 @@ struct node *parser_parse_term(struct token **token_list)
 struct node *parser_parse_expression(struct token **token_list)
 {
     /* expression : term (PLUS | MINUS) term * */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *expression;
     struct token *op;
 
     expression = parser_parse_term(token_list);
     if (NULL == expression)
     {
-        DEBUG;
         return NULL;
     }
     
@@ -227,7 +198,7 @@ struct node *parser_parse_expression(struct token **token_list)
             expression = ast_binary_node_create(expression, op, parser_parse_term(token_list));
             if (NULL == expression)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             continue;
@@ -241,6 +212,7 @@ struct node *parser_parse_expression(struct token **token_list)
 struct node *parser_parse_declaration_without_value(struct token **token_list)
 {
     /* declaration_without_value : VAR VARNAME VARTYPE */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *variable;
     struct token *name, *tmp_list; 
 
@@ -251,33 +223,33 @@ struct node *parser_parse_declaration_without_value(struct token **token_list)
         token_list_step(&tmp_list);
         if (0 != token_compare(tmp_list, VARNAME))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
         name = token_list_pop(&tmp_list);
         variable = ast_variable_node_create(name);
         if (NULL == variable)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
 
         if (0 != token_compare(tmp_list, VARTYPE))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return ast_node_destroy(variable);
         }
-        
         token_list_step(&tmp_list);
-        *token_list = tmp_list;
     } 
+    *token_list = tmp_list;
 
-    return variable;
+    return ast_declaration_node_create(variable, token_create(ASSIGN, ASSIGN, 1), NULL);
 }
 
 struct node *parser_parse_declaration_with_value(struct token **token_list)
 {
     /* declaration_with_value : VAR VARNAME VARTYPE EQUALS expression  */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *variable;
     struct token *name, *op, *tmp_list;   
 
@@ -288,31 +260,31 @@ struct node *parser_parse_declaration_with_value(struct token **token_list)
         token_list_step(&tmp_list);
         if (0 != token_compare(tmp_list, VARNAME))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
         
         name = token_list_pop(&tmp_list);      
-        variable = ast_variable_node_create(name);
-        if (NULL == variable)
-        {
-            DEBUG;
-            return NULL;
-        }
 
         if (0 != token_compare(tmp_list, VARTYPE))
         {
-            DEBUG;
-            return ast_node_destroy(variable);
+            ERROR_MESSAGE;
+            return NULL;
         }
         token_list_step(&tmp_list);
         
         if (0 != token_compare(tmp_list, EQUALS))
         {
-            DEBUG;
-            return ast_node_destroy(variable);
+            return NULL;
         }
-        
+
+        variable = ast_variable_node_create(name);
+        if (NULL == variable)
+        {
+            ERROR_MESSAGE;
+            return NULL;
+        }
+
         op = token_list_pop(&tmp_list);
         *token_list = tmp_list;
         return ast_declaration_node_create(variable, op, parser_parse_expression(token_list));
@@ -323,13 +295,14 @@ struct node *parser_parse_declaration_with_value(struct token **token_list)
 
 struct node *parser_parse_assignment(struct token **token_list)
 {
-    /* assignment : (VARNAME EQUALS expression) | (VARNAME ASSIGN expression)*/ 
+    /* assignment : (VARNAME EQUALS expression) | (VARNAME ASSIGN expression) | (VARNAME INCREMENT) | (VARNAME DECREMENT) */ 
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *variable;
     struct token *name, *op, *tmp_list;
 
     variable = NULL;
     tmp_list = *token_list;
-    if (0 == token_compare(*&tmp_list, VARNAME))
+    if (0 == token_compare(tmp_list, VARNAME))
     {
         name = token_list_pop(&tmp_list);
         variable = ast_variable_node_create(name);
@@ -339,12 +312,26 @@ struct node *parser_parse_assignment(struct token **token_list)
             *token_list = tmp_list;
             return ast_assignment_node_create(variable, op, parser_parse_expression(token_list));     
         }
-        if (0 == token_compare(*&tmp_list, ASSIGN))
+        if (0 == token_compare(tmp_list, ASSIGN))
         {
             op = token_list_pop(&tmp_list);
             *token_list = tmp_list;
             return ast_declaration_node_create(variable, op, parser_parse_expression(token_list));
         }
+        if (0 == token_compare(tmp_list, INCREMENT))
+        {
+            op = token_list_pop(&tmp_list);
+            *token_list = tmp_list;
+            return ast_assignment_node_create(variable, token_create(EQUALS, EQUALS, 1), 
+                ast_binary_node_create(variable, token_create(PLUS, PLUS, 1), ast_value_node_set(token_create(INT, "1", 1))));
+        }
+        if (0 == token_compare(tmp_list, DECREMENT))
+        {
+            op = token_list_pop(&tmp_list);
+            *token_list = tmp_list;
+            return ast_assignment_node_create(variable, token_create(EQUALS, EQUALS, 1), 
+                ast_binary_node_create(variable, token_create(MINUS, MINUS, 1), ast_value_node_set(token_create(INT, "1", 1))));
+        }        
     }
     
     return NULL;
@@ -352,11 +339,13 @@ struct node *parser_parse_assignment(struct token **token_list)
 
 struct node *parser_parse_comparison(struct token **token_list)
 {
-    /* comparison : [NOT] expression (LESS_THAN | LESS_EQUAL | EQUIVALENT | GREATER_THAN | GREATER_EQUAL) expression */
+    /* comparison : [NOT] expression (LESS_THAN | LESS_EQUAL | EQUIVALENT | | NOT_EQUAL | GREATER_THAN | GREATER_EQUAL) expression */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *comparison, *left, *right;
     struct token *tmp_list, *not, *op;
 
     tmp_list = *token_list;
+    not = NULL;
     if (0 == token_compare(tmp_list, NOT))
     {
         not = token_list_pop(&tmp_list);
@@ -365,31 +354,31 @@ struct node *parser_parse_comparison(struct token **token_list)
     left = parser_parse_expression(&tmp_list);
     if (NULL == left)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
-    if (0 == token_list_compare_any(&tmp_list, 5, LESS_THAN, LESS_EQUAL, EQUIVALENT, GREATER_THAN, GREATER_EQUAL))
+    if (0 == token_list_compare_any(&tmp_list, 6, LESS_THAN, LESS_EQUAL, EQUIVALENT, NOT_EQUAL, GREATER_THAN, GREATER_EQUAL))
     {
         op = token_list_pop(&tmp_list);
     }
     else
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     
     right = parser_parse_expression(&tmp_list);
     if (NULL == right)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     comparison = ast_comparison_node_create(not, left, op, right);
     if (NULL == comparison)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -401,6 +390,7 @@ struct node *parser_parse_comparison(struct token **token_list)
 struct node *parser_parse_comparison_list(struct token **token_list)
 {
     /* comparison_list : comparison | (comparison (AND | OR) comparison_list) */ 
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *comparison, *next_comparison;
     struct token *op, *tmp_list;
 
@@ -408,7 +398,7 @@ struct node *parser_parse_comparison_list(struct token **token_list)
     comparison = parser_parse_comparison(&tmp_list);
     if (NULL == comparison)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -429,7 +419,7 @@ struct node *parser_parse_comparison_list(struct token **token_list)
             }  
             else
             {
-                DEBUG;
+                ERROR_MESSAGE;
             }       
         }
         break;
@@ -442,7 +432,8 @@ struct node *parser_parse_comparison_list(struct token **token_list)
 
 struct node *parser_parse_condition_declaration(struct token **token_list)
 {
-    /* condition_declaration : IF [OPEN_PAREN] comparison [CLOSE_PAREN]*/
+    /* condition_declaration : (IF [OPEN_PAREN] comparison_list [CLOSE_PAREN]) | (ELSE [condition_delcaration]) */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *comparison, *condition;
     struct token *tmp_list, *op;
 
@@ -459,7 +450,7 @@ struct node *parser_parse_condition_declaration(struct token **token_list)
         comparison = parser_parse_comparison_list(&tmp_list);
         if (NULL == comparison)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
 
@@ -471,8 +462,18 @@ struct node *parser_parse_condition_declaration(struct token **token_list)
         condition = ast_condition_node_create(comparison, op);
         if (NULL == condition)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
+        }
+    }
+    else if (0 == token_compare(tmp_list, ELSE))
+    {
+        op = token_list_pop(&tmp_list);
+        condition = parser_parse_condition_declaration(&tmp_list);
+        if (NULL == condition)
+        {
+            *token_list = tmp_list;
+            return ast_condition_node_create(NULL, op);
         }
     }
 
@@ -481,75 +482,11 @@ struct node *parser_parse_condition_declaration(struct token **token_list)
     return condition;
 }
 
-struct node *parser_parse_condition_else(struct token **token_list)
-{
-    /* ELSE [newline] [condition_declaration] [newline] OPEN_BRACE [newline] statement_list CLOSE_BRACE */
-    struct node *condition_else, *condition_declaration, *statement_list;
-    struct token *tmp_list, *op;
-
-    tmp_list = *token_list;
-    condition_declaration = NULL;
-    condition_else = NULL;
-    if (0 != token_compare(tmp_list, ELSE))
-    {
-        return NULL;
-    }
-    op = token_list_pop(&tmp_list);
-    skip_newlines(&tmp_list);
-
-    if (0 == token_compare(tmp_list, IF))
-    {
-        condition_declaration = parser_parse_condition_declaration(&tmp_list);
-        if (NULL == condition_declaration)
-        {
-            DEBUG;
-            return NULL;
-        }
-    }
-    skip_newlines(&tmp_list);
-    
-    if (0 == token_compare(tmp_list, OPEN_BRACE))
-    {
-        token_list_step(&tmp_list);
-    }
-    else
-    {
-        DEBUG;
-        return NULL;
-    }
-    skip_newlines(&tmp_list);
-    
-    statement_list = parser_parse_statement_list(&tmp_list);
-    if (NULL == statement_list)
-    {
-        DEBUG;
-        return NULL;
-    }
-    
-    condition_else = ast_condition_else_node_create(statement_list, condition_declaration, op);
-    if (NULL == condition_else)
-    {
-        DEBUG;
-        return NULL;
-    }
-
-    if (0 != token_compare(tmp_list, CLOSE_BRACE))
-    {
-        DEBUG;
-        return NULL;
-    }
-    token_list_step(&tmp_list);
-
-    *token_list = tmp_list;
-
-    return condition_else;
-}
-
 struct node *parser_parse_condition(struct token **token_list)
 {
-    /* condition : condition_declaration [newline] OPEN_BRACE [newline] statement_list 
-    [newline] CLOSE_BRACE [condition_else | condition_else_list]   */
-    struct node *condition, *statement_list, *condition_else;
+    /* condition : condition_declaration [newline] OPEN_BRACE [newline] statement_list [newline] CLOSE_BRACE  */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
+    struct node *condition, *statement_list;
     struct token *tmp_list;
 
     tmp_list = *token_list;
@@ -562,7 +499,7 @@ struct node *parser_parse_condition(struct token **token_list)
 
     if (0 != token_compare(tmp_list, OPEN_BRACE))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     token_list_step(&tmp_list);
@@ -571,52 +508,188 @@ struct node *parser_parse_condition(struct token **token_list)
     statement_list = parser_parse_statement_list(&tmp_list);
     if (NULL == statement_list)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     skip_newlines(&tmp_list);
 
     if (0 != token_compare(tmp_list, CLOSE_BRACE))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     token_list_step(&tmp_list);
 
     if (0 != ast_condition_node_add_body(condition, statement_list))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
-
-    condition_else = parser_parse_condition_else(&tmp_list);
-
-    if (NULL != condition_else)
-    {
-        while(1)
-        {
-            if (0 != ast_node_append(&condition, condition_else, NULL))
-            {
-                DEBUG;
-                return NULL;
-            }
-            condition_else = parser_parse_condition_else(&tmp_list);
-            if (NULL == condition_else)
-            {
-                break;
-            }
-        }
-    }
-    skip_newlines(&tmp_list);
 
     *token_list = tmp_list;
 
     return condition;
 }
 
+struct node *parser_parse_condition_list(struct token **token_list)
+{
+    /* condition_list : condition | (statement NEWLINE condition_list) */ 
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
+    struct node *condition, *next_condition;
+
+    condition = parser_parse_condition(token_list);
+    if (NULL == condition)
+    {
+        return NULL;
+    }
+
+    while (1)
+    {
+        next_condition = parser_parse_condition(token_list);            
+        if (NULL == next_condition)
+        {
+            break;
+        }
+        if (0 == ast_node_append(&condition->body, next_condition, NULL))
+        {
+            continue;
+        }  
+        else
+        {
+            ERROR_MESSAGE;
+        }       
+        break;
+    }
+
+    return condition;
+}
+
+struct node *parser_parse_loop_declaration(struct token **token_list)
+{
+    /* loop_declaration : FOR [OPEN_PAREN] declaration_with_value SEMICOLON comparison SEMICOLON assignment [CLOSE_PAREN] */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
+    struct node *declaration, *comparison, *assignment, *loop_declaration;
+    struct token *tmp_list, *op;
+
+    tmp_list = *token_list;
+    if (0 != token_compare(tmp_list, FOR))
+    {
+        return NULL;
+    }
+    op = token_list_pop(&tmp_list);
+
+    if (0 == token_compare(tmp_list, OPEN_PAREN))
+    {
+        token_list_step(&tmp_list);
+    }
+
+    declaration = parser_parse_assignment(&tmp_list);
+    if (NULL == declaration)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    if (0 != token_compare(tmp_list, SEMICOLON))
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+    token_list_step(&tmp_list);
+
+    comparison = parser_parse_comparison(&tmp_list);
+    if (NULL == comparison)
+    {
+        ERROR_MESSAGE;
+        return ast_node_destroy(declaration);
+    }
+
+    if (0 != token_compare(tmp_list, SEMICOLON))
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+    token_list_step(&tmp_list);
+
+    assignment = parser_parse_assignment(&tmp_list);
+    if (NULL == assignment)
+    {
+        ERROR_MESSAGE;
+        declaration = ast_node_destroy(declaration);
+        return ast_node_destroy(comparison);
+    }
+
+    if (0 == token_compare(tmp_list, CLOSE_PAREN))
+    {
+        token_list_step(&tmp_list);
+    }
+
+    loop_declaration = ast_loop_node_create(declaration, comparison, assignment, op);
+    if (NULL == loop_declaration)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    *token_list = tmp_list;
+
+    return loop_declaration;
+}
+
+struct node *parser_parse_loop(struct token **token_list)
+{
+    /* loop : loop_declaration [NEWLINE] OPEN_BRACE STATEMENT_LIST [NEWLINE] CLOSE_BRACE */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
+    struct node *loop_declaration, *statement_list;
+    struct token *tmp_list;
+
+    tmp_list = *token_list;
+    loop_declaration = parser_parse_loop_declaration(&tmp_list);
+    if (NULL == loop_declaration)
+    {
+        return NULL;
+    }
+    skip_newlines(&tmp_list);
+    
+    if (0 != token_compare(tmp_list, OPEN_BRACE))
+    {
+        ERROR_MESSAGE;
+        return ast_node_destroy(loop_declaration);
+    }
+    token_list_step(&tmp_list);
+
+    statement_list = parser_parse_statement_list(&tmp_list);
+    if (NULL == statement_list)
+    {
+        ERROR_MESSAGE;
+        return ast_node_destroy(loop_declaration);
+    }
+    skip_newlines(&tmp_list);
+
+    if (0 != token_compare(tmp_list, CLOSE_BRACE))
+    {
+        ERROR_MESSAGE;
+        statement_list = ast_node_destroy(statement_list);
+        return ast_node_destroy(loop_declaration);
+    }
+    token_list_step(&tmp_list);
+
+    if (0 != ast_loop_node_add_body(loop_declaration, statement_list))
+    {
+        ERROR_MESSAGE;
+        statement_list = ast_node_destroy(statement_list);
+        return ast_node_destroy(loop_declaration);       
+    }
+
+    *token_list = tmp_list;
+
+    return loop_declaration;
+}
+
 struct node *parser_parse_statement(struct token **token_list)
 {
     /* statement : declaration_with_value | declaration_without_value | assignment | function_call | condition | loop */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *statement;
     struct token *tmp_list;
     
@@ -630,8 +703,8 @@ struct node *parser_parse_statement(struct token **token_list)
         { .fn = parser_parse_declaration_without_value },
         { .fn = parser_parse_assignment },
         { .fn = parser_parse_function_call },
-        { .fn = parser_parse_condition },
-        // { .fn = parser_parse_loop },
+        { .fn = parser_parse_condition_list },
+        { .fn = parser_parse_loop },
     };
 
     for (int i=0; i<LENGTH(statements); i++)
@@ -639,6 +712,7 @@ struct node *parser_parse_statement(struct token **token_list)
         statement = statements[i].fn(&tmp_list);
         if (NULL != statement)
         {
+            debug_print("statement: %s, %ld\n", statement->type, ast_num_nodes(statement));
             *token_list = tmp_list;
             return statement;
         }
@@ -650,11 +724,10 @@ struct node *parser_parse_statement(struct token **token_list)
 struct node *parser_parse_statement_list(struct token **token_list)
 {
     /* statement_list : statement | (statement (NEWLINE | SEMICOLON) statement_list) */ 
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *statement, *next_statement;
 
     statement = parser_parse_statement(token_list);
-    
-            // token_list_print(*token_list);
     if (NULL == statement)
     {
         return NULL;
@@ -664,7 +737,7 @@ struct node *parser_parse_statement_list(struct token **token_list)
     {
         if (skip_newlines(token_list))
         {
-            next_statement = parser_parse_statement(token_list);
+            next_statement = parser_parse_statement(token_list);            
             if (NULL == next_statement)
             {
                 return statement;
@@ -675,7 +748,7 @@ struct node *parser_parse_statement_list(struct token **token_list)
             }  
             else
             {
-                DEBUG;
+                ERROR_MESSAGE;
             }       
         }
         break;
@@ -687,6 +760,7 @@ struct node *parser_parse_statement_list(struct token **token_list)
 struct node *parser_parse_function_arguments(struct token **token_list)
 {
     /* function_arguments : VARTYPE VARNAME [COMMA] * */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *argument, *next_argument;
     struct token *tmp_list, *var;
 
@@ -699,7 +773,7 @@ struct node *parser_parse_function_arguments(struct token **token_list)
         argument = ast_function_argument_node_create(var);
         if (NULL == argument)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
     }
@@ -732,6 +806,7 @@ struct node *parser_parse_function_declaration(struct token **token_list)
 {
     /* function_declaration : FUNC VARNAME OPEN_PAREN [function_arguments] CLOSE_PAREN [VARTYPE]  
         [NEWLINE | SEMICOLON] OPEN_BRACE */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct token *function_name;
     struct node *function_declaration, *arguments;
 
@@ -747,7 +822,7 @@ struct node *parser_parse_function_declaration(struct token **token_list)
     function_declaration = ast_function_node_create(function_name);
     if (NULL == function_declaration)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     token_list_step(token_list);
@@ -759,7 +834,7 @@ struct node *parser_parse_function_declaration(struct token **token_list)
         {
             if (0 != ast_function_node_add_arguments(function_declaration, arguments))
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 arguments = ast_node_destroy(arguments);
                 return ast_node_destroy(function_declaration);
             }
@@ -778,7 +853,7 @@ struct node *parser_parse_function_declaration(struct token **token_list)
 
     if (0 != token_compare(*token_list, OPEN_BRACE))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return ast_node_destroy(function_declaration);
     }
     token_list_step(token_list);
@@ -790,6 +865,7 @@ struct node *parser_parse_function(struct token **token_list)
 {
     /*  function : function declaration [NEWLINE | SEMICOLON] assignment_list
      [NEWLINE | SEMICOLON] [RETURN] [NEWLINE | SEMICOLON] CLOSE_BRACE */
+    debug_print("%s, %s\n", __func__, token_get_display(*token_list));
     struct node *function, *function_body, *function_return;
     struct token *tmp_list;
 
@@ -815,12 +891,12 @@ struct node *parser_parse_function(struct token **token_list)
         function_return = parser_parse_expression(&tmp_list);
         if (NULL == function_return)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return ast_node_destroy(function);
         }
         if ( 0 != ast_function_node_add_return(function, function_return))
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return ast_node_destroy(function_return);
             return ast_node_destroy(function);
         }
@@ -829,7 +905,7 @@ struct node *parser_parse_function(struct token **token_list)
     skip_newlines(&tmp_list);
     if (0 != token_compare(tmp_list, CLOSE_BRACE))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return ast_node_destroy(function);
     }
     token_list_step(&tmp_list);
@@ -872,9 +948,11 @@ struct node *parser_parse_function_list(struct token **token_list)
 
 struct node *parser_parse_program(struct token **token_list)
 { 
-    /* program : function_list | assignment_list | expression */
+    /* program : [NEWLINE] function_list | assignment_list | expression */
 
     struct node *program;
+
+    skip_newlines(token_list);
 
     program = parser_parse_function_list(token_list);
     if (NULL != program)
@@ -893,11 +971,27 @@ struct node *parser_parse_program(struct token **token_list)
 
 struct node *parser_parse(struct token *token_list)
 {    
+    struct node *program;
+
     if (NULL == token_list || 0 == token_compare(token_list, EOFILE_TYPE))
     {
-        DEBUG;
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    program = parser_parse_program(&token_list);
+    if (NULL == program)
+    {
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    if (0 < token_list_length(token_list))
+    {
+        fprintf(stderr, "parsing not completed ");
+        ERROR_MESSAGE;
         return NULL;
     }
  
-    return parser_parse_program(&token_list);
+    return program;
 }

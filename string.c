@@ -77,7 +77,7 @@ struct token *string_binary_operations(const struct token *l_token, const struct
 
     if (0 != string_from_token(l_token, &l_char) || 0 != string_from_token(r_token, &r_char))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -88,13 +88,13 @@ struct token *string_binary_operations(const struct token *l_token, const struct
             output = valid_operations[i].fn(&l_char, &r_char);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }

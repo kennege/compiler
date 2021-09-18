@@ -6,6 +6,7 @@
 #include "lexer.h"
 #include "token.h"
 #include "float.h"
+#include "integer.h"
 
 static float float_from_token(const struct token *token, float *in_float)
 {
@@ -134,10 +135,10 @@ static struct token *float_and(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float && r_float);
+    output = integer_to_token(l_float && r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -148,10 +149,10 @@ static struct token *float_or(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float || r_float);
+    output = integer_to_token(l_float || r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -162,10 +163,10 @@ static struct token *float_not(float in_float)
 {
     struct token *output;
 
-    output = float_to_token(!in_float);
+    output = integer_to_token(!in_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -176,10 +177,24 @@ static struct token *float_equal_to(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float == r_float);
+    output = integer_to_token(l_float == r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
+        return NULL;
+    }
+
+    return output;
+}
+
+static struct token *float_not_equal_to(float l_float, float r_float)
+{
+    struct token *output;
+
+    output = integer_to_token(l_float != r_float);
+    if (NULL == output)
+    {
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -190,10 +205,10 @@ static struct token *float_greater_than(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float > r_float);
+    output = integer_to_token(l_float > r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -204,10 +219,10 @@ static struct token *float_greater_equal_to(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float >= r_float);
+    output = integer_to_token(l_float >= r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -218,10 +233,10 @@ static struct token *float_less_than(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float < r_float);
+    output = integer_to_token(l_float < r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -232,10 +247,10 @@ static struct token *float_less_equal_to(float l_float, float r_float)
 {
     struct token *output;
 
-    output = float_to_token(l_float <= r_float);
+    output = integer_to_token(l_float <= r_float);
     if (NULL == output)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -259,7 +274,7 @@ struct token *float_binary_operations(const struct token *l_token, const struct 
 
     if (0 != float_from_token(l_token, &l_float) || 0 != float_from_token(r_token, &r_float))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -270,14 +285,14 @@ struct token *float_binary_operations(const struct token *l_token, const struct 
             output = valid_operations[i].fn(l_float, r_float);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -293,6 +308,7 @@ struct token *float_comparisons(const struct token *l_token, const struct token 
         { .comp = AND, .fn = float_and },
         { .comp = OR, .fn = float_or },
         { .comp = EQUIVALENT, .fn = float_equal_to },
+        { .comp = NOT_EQUAL, .fn = float_not_equal_to },
         { .comp = GREATER_THAN, .fn = float_greater_than },
         { .comp = GREATER_EQUAL, .fn = float_greater_equal_to },
         { .comp = LESS_THAN, .fn = float_less_than },
@@ -301,7 +317,7 @@ struct token *float_comparisons(const struct token *l_token, const struct token 
 
     if (0 != float_from_token(l_token, &l_float) || 0 != float_from_token(r_token, &r_float))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -312,14 +328,14 @@ struct token *float_comparisons(const struct token *l_token, const struct token 
             output = valid_comparisons[i].fn(l_float, r_float);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -339,7 +355,7 @@ struct token *float_unary_operations(const struct token *token, const char *op)
 
     if (0 != float_from_token(token, &in_float))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -350,13 +366,13 @@ struct token *float_unary_operations(const struct token *token, const char *op)
             output = valid_operations[i].fn(in_float);
             if (NULL == output)
             {
-                DEBUG;
+                ERROR_MESSAGE;
                 return NULL;
             }
             return output;
         }
     }
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }

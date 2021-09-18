@@ -54,14 +54,14 @@ struct token *token_create(const char *type, const char *value, int value_len)
 
     if (NULL == type || NULL == value)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     token = malloc(sizeof(*token));
     if (NULL == token)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     memset(token, 0, sizeof(*token));
@@ -69,21 +69,21 @@ struct token *token_create(const char *type, const char *value, int value_len)
     token->display = malloc(DISPLAY_BUFF * sizeof(token->display[0]));
     if (NULL == token->display)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(token);
     }
     
     token->value = string_cpy(value, value_len);
     if (NULL == token->value)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(token);
     }
 
     token->type = string_cpy(type, strlen(type));
     if (NULL == token->type)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return token_destroy(token);
     }
 
@@ -117,7 +117,7 @@ int token_list_append(struct token *new, struct token **list_head)
 
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -155,7 +155,7 @@ int token_exists(struct token *token, struct token *list)
 {
     if (NULL == token)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -195,9 +195,17 @@ struct token *token_list_pop(struct token **token_list)
        token_list_step(token_list);
     }
 
-    tmp->next = NULL;
-
     return tmp;
+}
+
+size_t token_list_length(const struct token *token_list)
+{
+    if (NULL == token_list)
+    {
+        return 0;
+    }
+
+    return 1 + token_list_length(token_list->next);
 }
 
 int token_compare(const struct token *token, const char *type)
@@ -222,7 +230,7 @@ int token_list_compare_all(struct token **token_list, int peak_length, ...)
 
     if (NULL == token_list)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -247,7 +255,7 @@ int token_list_compare_any(struct token **token_list, int n_options, ...)
 
     if (NULL == token_list)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -275,14 +283,14 @@ struct token *token_cpy(const struct token *token)
 
     if (NULL == token)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     new = token_create(token->type, token->value, strlen(token->value));
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -295,14 +303,14 @@ struct token *token_list_cpy(const struct token *token_list)
 
     if (NULL == token_list)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
     new = token_cpy(token_list);
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -325,7 +333,6 @@ char *token_get_value(const struct token *token)
 {
     if (NULL == token)
     {
-        DEBUG;
         return NULL;
     }
     
@@ -336,7 +343,6 @@ char *token_get_type(const struct token *token)
 {
     if (NULL == token)
     {
-        DEBUG;
         return NULL;
     }
     

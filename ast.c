@@ -14,7 +14,6 @@ struct node *ast_node_destroy(struct node *node)
     }
 
     free(node);
-    node->set = 0;
 
     return NULL;
 }
@@ -89,15 +88,22 @@ static struct node *ast_node_create()
     }
     memset(ast->arguments, 0, sizeof(*ast->arguments));
 
+    ast->body = malloc(sizeof(*ast->body));
+    if (NULL == ast->body)
+    {
+        return ast_destroy_all(ast);
+    }
+    memset(ast->body, 0, sizeof(*ast->body));
+
     ast->next = malloc(sizeof(*ast->next));
     if (NULL == ast->next)
     {
-        return NULL;
+        return ast_destroy_all(ast);
     }
+    memset(ast->next, 0, sizeof(*ast->next));
+
     ast->next->node = NULL;
     ast->next->operator = NULL;
-    
-    ast->set = 0;
     ast->type = NULL;
 
     return ast;
@@ -119,9 +125,8 @@ struct node *ast_binary_node_create(struct node *left, struct token *op, struct 
     }
     node->left = left;
     node->op = op;
-    node->set = 1;
-    node->type = BINARY;
     node->right = right;
+    node->type = BINARY;
 
     return node;
 }
@@ -142,7 +147,6 @@ struct node *ast_unary_node_create(struct token *op, struct node *left)
     }
     node->left = left;
     node->op = op;
-    node->set = 1;
     node->type = UNARY;
 
     return node;
@@ -163,7 +167,6 @@ struct node *ast_value_node_set(struct token *op)
         return NULL;
     }
     node->op = op;
-    node->set = 1;
     node->type = VALUE;
 
     return node;
@@ -185,7 +188,6 @@ struct node *ast_variable_node_create(struct token *op)
     }
     node->op = op;
     node->type = VARIABLE;
-    node->set = 1;
 
     return node;
 }
@@ -194,7 +196,7 @@ struct node *ast_assignment_node_create(struct node *left, struct token *op, str
 {
     struct node *node;
 
-    if (NULL == left || NULL == op || NULL == right)
+    if (NULL == left || NULL == op )
     {
         return NULL;
     }
@@ -208,7 +210,6 @@ struct node *ast_assignment_node_create(struct node *left, struct token *op, str
     node->op = op;
     node->right = right;
     node->type = ASSIGNMENT;
-    node->set = 1;
 
     return node;
 }
@@ -217,7 +218,7 @@ struct node *ast_declaration_node_create(struct node *left, struct token *op, st
 {
     struct node *node;
 
-    if (NULL == left || NULL == op || NULL == right)
+    if (NULL == left || NULL == op)
     {
         return NULL;
     }
@@ -231,7 +232,6 @@ struct node *ast_declaration_node_create(struct node *left, struct token *op, st
     node->op = op;
     node->right = right;
     node->type = DECLARATION;
-    node->set = 1;
 
     return node;
 }
@@ -263,7 +263,6 @@ struct node *ast_comparison_node_create(struct token *not, struct node *left, st
     node->left = left;
     node->right = right;
     node->type = COMPARISON;
-    node->set = 1;
 
     return node;
 }
@@ -272,7 +271,7 @@ struct node *ast_condition_node_create(struct node *comparison_list, struct toke
 {
     struct node *node;
 
-    if (NULL == comparison_list)
+    if (NULL == condition)
     {
         return NULL;
     }
@@ -283,9 +282,10 @@ struct node *ast_condition_node_create(struct node *comparison_list, struct toke
         return NULL;
     }
     node->left = comparison_list;
+    node->right = NULL;
     node->op = condition;
+    node->body = NULL;
     node->type = CONDITION;
-    node->set = 1;
 
     return node;
 }
@@ -300,29 +300,6 @@ int ast_condition_node_add_body(struct node *condition, struct node *statement_l
     condition->right = statement_list;
 
     return 0;
-}
-
-struct node *ast_condition_else_node_create(struct node *statement_list, struct node *condition_declaration, struct token *condition)
-{
-    struct node *node;
-
-    if (NULL == statement_list)
-    {
-        return NULL;
-    }
-
-    node = ast_node_create();
-    if (NULL == node)
-    {
-        return NULL;
-    }
-    node->left = condition_declaration;
-    node->op = condition;
-    node->right = statement_list;
-    node->type = CONDITION;
-    node->set = 1;
-
-    return node;
 }
 
 struct node *ast_function_call_node_create(struct token *name)
@@ -341,7 +318,6 @@ struct node *ast_function_call_node_create(struct token *name)
     }
     node->op = name;
     node->type = FUNCTION_CALL;
-    node->set = 1;
 
     return node;
 }
@@ -354,6 +330,42 @@ int ast_function_call_node_add_variables(struct node *node, struct node *variabl
     }
 
     node->left = variables;
+
+    return 0;
+}
+
+struct node *ast_loop_node_create(struct node *declaration, struct node *comparison, struct node *assignment, struct token *op)
+{
+    struct node *node;
+
+    if ( NULL == declaration || NULL == comparison || NULL == assignment)
+    {
+        return NULL;
+    }
+
+    node = ast_node_create();
+    if (NULL == node)
+    {
+        return NULL;
+    }  
+
+    node->left = declaration;
+    node->op = op;
+    node->right = comparison;
+    node->arguments = assignment;
+    node->type = LOOP;
+
+    return node;
+}
+
+int ast_loop_node_add_body(struct node *node, struct node *body)
+{
+    if (NULL == node || NULL == body)
+    {
+        return -1;
+    }
+
+    node->body = body;
 
     return 0;
 }
@@ -377,7 +389,6 @@ struct node *ast_function_node_create(struct token *name)
     node->right = NULL;
     node->arguments = NULL;
     node->type = FUNCTION;
-    node->set = 1;
 
     return node;
 }
@@ -398,7 +409,6 @@ struct node *ast_function_argument_node_create(struct token *name)
     }
     node->op = name;
     node->type = FUNCTION_ARGUMENT;
-    node->set = 1;
 
     return node;
 }
@@ -455,7 +465,6 @@ struct node *ast_program_node_create(struct node *function_list)
     }
     node->left = function_list;
     node->type = PROGRAM;
-    node->set = 1;
 
     return node;
 }
@@ -482,7 +491,6 @@ int ast_node_append(struct node **list_head, struct node *new, struct token *ope
     }
 
     last->next->node = new;
-    new->next->node = NULL;
     new->next->operator = operator;
 
     return 0;
@@ -492,7 +500,7 @@ int ast_node_push(struct node **list_head, struct node *new)
 {
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -508,14 +516,17 @@ int ast_node_push(struct node **list_head, struct node *new)
     return 0;
 }
 
-const struct node *ast_node_index(const struct node *list_head, int index)
+const struct node *ast_node_index(const struct node **list_head, int index)
 {
+    const struct node *tmp_node;
+
+    tmp_node = *list_head;
     for (int i=0; i<index; i++)
     {
-        list_head = list_head->next->node;
+        tmp_node = tmp_node->next->node;
     }
 
-    return list_head;
+    return tmp_node;
 }
 
 size_t ast_num_nodes(const struct node *list_head)
@@ -526,6 +537,28 @@ size_t ast_num_nodes(const struct node *list_head)
     }
 
     return 1 + ast_num_nodes(list_head->next->node);
+}
+
+char *ast_node_display(const struct node *node)
+{
+    char *display;
+
+    if (NULL != node->op)
+    {
+        display = string_cpycat("op: %s", token_get_value(node->op)); 
+    }
+
+    if (NULL != node->left)
+    {
+        display = string_cpycat("left: %s, %s", token_get_value(node->left->op), display); 
+    }   
+
+    if (NULL != node->right)
+    {
+        display = string_cpycat("%s, right: %s", display, token_get_value(node->right->op), display); 
+    }
+
+    return display;
 }
 
 void ast_print_next(const struct node *node, int level)

@@ -23,6 +23,7 @@ void token_list_step(struct token **token_list);
 int token_list_append(struct token *new, struct token **list_head);
 int token_list_create_and_append(const char *type, const char *value, int length, struct token **list_head);
 struct token *token_list_destroy(struct token *token_list);
+size_t token_list_length(const struct token *token_list);
 
 void token_print(const struct token *token);
 void token_list_print(const struct token *token_list);

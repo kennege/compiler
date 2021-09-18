@@ -47,7 +47,7 @@ static struct stack *stack_create(const struct token *var_name, const struct tok
     new = malloc(sizeof(*new));
     if (NULL == new)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
     memset(new, 0, sizeof(*new));
@@ -55,7 +55,7 @@ static struct stack *stack_create(const struct token *var_name, const struct tok
     new->var_name = token_cpy(var_name);
     if (NULL == new->var_name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return stack_destroy(new);
     }
 
@@ -64,7 +64,7 @@ static struct stack *stack_create(const struct token *var_name, const struct tok
         new->var = token_cpy(var);
         if (NULL == new->var)
         {
-            DEBUG;
+            ERROR_MESSAGE;
             return NULL;
         }
     }
@@ -104,7 +104,7 @@ const struct token *stack_get_function_arg(const struct stack *stack, struct tok
 
     if (NULL == func_name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -121,7 +121,7 @@ const struct token *stack_get_function_arg(const struct stack *stack, struct tok
     arg = token_list_index(args, arg_index);
     if (NULL == arg)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -134,7 +134,7 @@ int stack_function_declaration_append(struct stack **list_head, const struct tok
     
     if (0 != stack_append(list_head, func_name, NULL))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -149,7 +149,7 @@ int stack_function_declaration_append(struct stack **list_head, const struct tok
         tmp = tmp->next;
     }
         
-    DEBUG;
+    ERROR_MESSAGE;
     return -1;
 }
 
@@ -171,7 +171,7 @@ const struct token *stack_extract(const struct stack *stack, const struct token 
 {
     if (NULL == stack || NULL == var_name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return NULL;
     }
 
@@ -184,7 +184,7 @@ const struct token *stack_extract(const struct stack *stack, const struct token 
         stack = stack->next;
     }   
 
-    DEBUG;
+    ERROR_MESSAGE;
     return NULL;
 }
 
@@ -219,7 +219,7 @@ int stack_append(struct stack **list_head, const struct token *var_name, const s
 
     if (NULL == var_name)
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
@@ -250,7 +250,7 @@ int stack_function_arg_append(struct stack *list_head, struct token *arg_name)
 {
     if (0 != token_list_append(arg_name, &(list_head->args)))
     {
-        DEBUG;
+        ERROR_MESSAGE;
         return -1;
     }
 
