@@ -548,6 +548,11 @@ char *ast_node_display(const struct node *node)
         display = string_cpycat("op: %s", token_get_value(node->op)); 
     }
 
+    if (NULL != node->type)
+    {
+        display = string_cpycat("%s (type: %s)", display, node->type);
+    }
+
     if (NULL != node->left)
     {
         display = string_cpycat("left: %s, %s", token_get_value(node->left->op), display); 

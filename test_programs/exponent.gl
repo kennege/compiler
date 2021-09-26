@@ -1,0 +1,15 @@
+func exp(float32 num, float32 power)
+{
+    n := 1
+    for (i:=0; i<power; i++)
+    {
+        n = n * num;
+    }   
+    return n
+}
+
+func main() int
+{
+    r := exp(5, 3)     
+    return r               
+}

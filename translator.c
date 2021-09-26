@@ -33,7 +33,7 @@ static char *translator_get_types(const struct token *left, const struct token *
         if ((0 == strcmp(token_get_type(left), FLOAT) && 0 == strcmp(token_get_type(right), INT)) ||
         (0 == strcmp(token_get_type(right), FLOAT) && 0 == strcmp(token_get_type(left), INT)))
         {  
-            return INT;
+            return FLOAT;
         }
         else
         {
@@ -321,7 +321,7 @@ static struct token *translator_visit_function_call_node(const struct node *node
     {
         next_node = ast_node_index(&current_node, i);
         arg_name = stack_get_function_arg(memory->stack, node->op, i);
-        arg_val = stack_extract(memory->stack, next_node->op);
+        arg_val = translator_visit(next_node, memory);
         if (NULL == arg_name || NULL == arg_val)
         {
             ERROR_MESSAGE;
@@ -525,10 +525,15 @@ static struct token *translator_visit_variable_node(const struct node *node, str
     debug_print("%s\n", ast_node_display(node));
     struct token *output;
 
+    if (0 == strcmp(node->type, VARTYPE))
+    {
+        return translator_visit(node, memory);
+    }
+
     output = token_cpy(stack_extract(memory->stack, node->op));
     if (NULL == output)
     {
-        memory->semantic_error = 1;
+        // memory->semantic_error = 1;
         fprintf(stderr, "variable not found: %s ", token_get_display(node->op));
         ERROR_MESSAGE;
         return NULL;

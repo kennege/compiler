@@ -10,7 +10,7 @@
 #include "utils.h"
 #include "test.h"
 
-struct token *interpreter(char *input_str)
+static struct token *interpreter(char *input_str)
 {
     struct token *token_list, *result;
     struct node *ast;
@@ -32,12 +32,12 @@ struct token *interpreter(char *input_str)
     result = translator_translate(ast);
 
     token_list = token_list_destroy(token_list);
-    ast = ast_destroy_all(ast);
+    // ast = ast_destroy_all(ast);
 
     return result;
 }
 
-char *read_file(char *path)
+static char *read_file(char *path)
 {
     FILE *fp;
     size_t f_size;
@@ -71,7 +71,7 @@ char *read_file(char *path)
     return program;    
 }
 
-void usage(char *name)
+static void usage(char *name)
 {
     fprintf(stderr, "usage: %s <program>.gl | -h | -t [-d]\n\n", name);
     fprintf(stderr, "options:\n \

@@ -769,7 +769,7 @@ struct node *parser_parse_function_arguments(struct token **token_list)
     if (0 == token_list_compare_all(&tmp_list, 2, VARTYPE, VARNAME))
     {
         token_list_step(&tmp_list);
-        var = token_list_pop(&tmp_list);
+        var = token_cpy(token_list_pop(&tmp_list));
         argument = ast_function_argument_node_create(var);
         if (NULL == argument)
         {
@@ -786,7 +786,7 @@ struct node *parser_parse_function_arguments(struct token **token_list)
             if (0 == token_list_compare_all(&tmp_list, 2, VARTYPE, VARNAME))
             {
                 token_list_step(&tmp_list);
-                var = token_list_pop(&tmp_list);
+                var = token_cpy(token_list_pop(&tmp_list));
                 next_argument = ast_function_argument_node_create(var);
                 if (0 == ast_node_append(&argument, next_argument, NULL))
                 {

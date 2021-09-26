@@ -184,6 +184,7 @@ const struct token *stack_extract(const struct stack *stack, const struct token 
         stack = stack->next;
     }   
 
+    token_print(var_name);
     ERROR_MESSAGE;
     return NULL;
 }

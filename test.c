@@ -14,46 +14,21 @@ static const struct {
     char *input;
     char *expected_output;
 } pass_tests[] = {
-    // { .input = "-3*(3+4)     -  - -1", .expected_output = "-22" },
-    // { .input = "( ((3+5))  )/ 2*2", .expected_output = "8" },
-    // { .input = "-1", .expected_output = "-1" },
-    // { .input = "-1 + 1", .expected_output = "0" },
-    // { .input = "var x int =2", .expected_output = "2" },
-    // { .input = "-2.0 + 0.03", .expected_output = "-1.97" },
-    // { .input = "// 3+5\n1+2", .expected_output = "3" },
-    // { .input = "func main() int { \n d := 2 +  4 \n b:= d+3 \n return b \n}", .expected_output = "9" },
-    // { .input = "func main() int { \n a := 2\nd := 2 +  4 \n d= d+3 \n return d \n}", .expected_output = "9" },
-    // { .input = "func main(int a, float32 b) float32 { \n var c float32 = 2"
-        // "\nd := c +  4.1 \n\n return c+ d \n}", .expected_output = "8.10" },
-    // { .input = "func divide_input(float32 num, float32 den) float32 { \n return num/den \n}"
-    //     "\n\n func main() float32 \n{ \n var x float32 = 1.0 \n y := 2.0 \n return divide_input(x,y)\n }", .expected_output = "0.50" },
-    // { .input = "func main() int { \n d := 4 \n if d > 4 { \n d = d + 1 \n } else if d==4 {\n d = d+2 \n} else { d = 0 } \n return d }", .expected_output = "6" },
-    // { .input = "func main() int { \n d := 0 \n for i:=0; i < 5; i++ { d = d + 1 \n } \n return d \n }", .expected_output = "5"},
-    { .input = "// my first goLite program\n \
-\n                                           \
-func root(float32 input)\n                   \
-{\n                                          \
-    i := 1.0\n                               \
-    \n                                       \
-    for (j:=0; i*i<d; j++)\n                 \
-    {\n                                      \
-        i = i + 1.0\n                        \
-    }\n                                      \
-    p := i - 1.0\n                           \
-    x := 1.0\n                               \
-    for (i:=0; i<10; i++)\n                  \
-    {\n                                      \
-        x =  p + (d-p*p) / (p + x)\n         \
-    }\n                                      \
-    return x\n                               \
-}\n                                          \
-\n                                           \
-func main() int \n                           \
-{\n                                          \
-    d := 13.0\n                              \
-    r := root(d)\n                           \     
-    return r\n                               \               
-}", .expected_output = "3.61" },
+    { .input = "-3*(3+4)     -  - -1", .expected_output = "-22" },
+    { .input = "( ((3+5))  )/ 2*2", .expected_output = "8" },
+    { .input = "-1", .expected_output = "-1" },
+    { .input = "-1 + 1", .expected_output = "0" },
+    { .input = "var x int =2", .expected_output = "2" },
+    { .input = "-2.0 + 0.03", .expected_output = "-1.97" },
+    { .input = "// 3+5\n1+2", .expected_output = "3" },
+    { .input = "func main() int { \n d := 2 +  4 \n b:= d+3 \n return b \n}", .expected_output = "9" },
+    { .input = "func main() int { \n a := 2\nd := 2 +  4 \n d= d+3 \n return d \n}", .expected_output = "9" },
+    { .input = "func main(int a, float32 b) float32 { \n var c float32 = 2.0"
+        "\nd := c +  4.1 \n\n return c+ d \n}", .expected_output = "8.10" },
+    { .input = "func divide_input(float32 num, float32 den) float32 { \n return num/den \n}"
+        "\n\n func main() float32 \n{ \n var x float32 = 1.0 \n y := 2.0 \n return divide_input(x,y)\n }", .expected_output = "0.50" },
+    { .input = "func main() int { \n d := 4 \n if d > 4 { \n d = d + 1 \n } else if d==4 {\n d = d+2 \n} else { d = 0 } \n return d }", .expected_output = "6" },
+    { .input = "func main() int { \n d := 0 \n for i:=0; i < 5; i++ { d = d + 1 \n } \n return d \n }", .expected_output = "5"},
 };
 
 static const struct {

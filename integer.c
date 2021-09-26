@@ -6,6 +6,7 @@
 #include "lexer.h"
 #include "token.h"
 #include "integer.h"
+#include "float.h"
 
 static int integer_from_token(const struct token *token, int *in_int)
 {
